@@ -7,3 +7,4 @@ python-docx
 nltk
 scikit-learn
 reportlab
+pytesseract
