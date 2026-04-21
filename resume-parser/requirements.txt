@@ -6,3 +6,4 @@ pdfplumber
 python-docx
 nltk
 scikit-learn
+reportlab
