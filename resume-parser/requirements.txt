@@ -8,3 +8,4 @@ nltk
 scikit-learn
 reportlab
 pytesseract
+pdf2image
