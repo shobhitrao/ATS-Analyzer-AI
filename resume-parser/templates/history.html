@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>History | ATS Analyzer AI</title>
+
+<style>
+body{
+margin:0;
+padding:0;
+font-family:Arial, sans-serif;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+}
+
+.container{
+max-width:900px;
+margin:40px auto;
+padding:30px;
+background:#111827;
+border-radius:18px;
+box-shadow:0 0 25px rgba(0,0,0,.45);
+}
+
+h1{
+text-align:center;
+color:#38bdf8;
+margin-bottom:30px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:25px;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.btn{
+display:inline-block;
+padding:10px 16px;
+border-radius:10px;
+text-decoration:none;
+font-weight:bold;
+}
+
+.home{background:#38bdf8;color:#00111a;}
+.logout{background:#ef4444;color:white;}
+
+.report{
+background:#1f2937;
+padding:18px;
+border-radius:14px;
+margin-bottom:16px;
+border-left:5px solid #22c55e;
+}
+
+.label{
+color:#94a3b8;
+font-size:14px;
+margin-bottom:6px;
+}
+
+.value{
+font-size:18px;
+line-height:1.6;
+}
+
+.score{
+font-size:24px;
+font-weight:bold;
+color:#22c55e;
+margin-top:8px;
+}
+
+.empty{
+text-align:center;
+padding:40px;
+background:#1f2937;
+border-radius:14px;
+color:#cbd5e1;
+}
+
+small{
+color:#94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Saved Reports 🔥</h1>
+
+<div class="topbar">
+<a class="btn home" href="/">🏠 Home</a>
+<a class="btn logout" href="/logout">🚪 Logout</a>
+</div>
+
+{% if reports %}
+
+{% for report in reports %}
+<div class="report">
+
+<div class="label">Report #{{ loop.index }}</div>
+
+<div class="value">
+<b>Skills:</b> {{ report.skills }}
+</div>
+
+<div class="score">
+ATS Score: {{ report.score }}%
+</div>
+
+<br><br>
+
+<a class="btn logout" href="/delete_report/{{ report.id }}">
+🗑 Delete
+</a>
+
+</div>
+{% endfor %}
+
+{% else %}
+
+<div class="empty">
+<h3>No Reports Yet</h3>
+<small>Upload your first resume to see history.</small>
+</div>
+
+{% endif %}
+
+</div>
+
+<script>
+
+let idleTime = 0;
+
+setInterval(timerIncrement, 60000);
+
+function timerIncrement() {
+    idleTime++;
+    if (idleTime >= 10) {
+        alert("Session expired due to inactivity.");
+        window.location.href = "/logout";
+    }
+}
+
+// Activity detect
+document.onmousemove = resetTimer;
+document.onkeypress = resetTimer;
+document.onclick = resetTimer;
+document.onscroll = resetTimer;
+
+function resetTimer() {
+    idleTime = 0;
+}
+
+</script>
+
+</body>
+</html>

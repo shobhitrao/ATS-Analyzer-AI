@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ATS Analyzer AI</title>
+
+<style>
+
+.meter-section{
+    margin-top:30px;
+    padding:35px;
+    background:#1a2438;
+    border-radius:25px;
+    text-align:center;
+}
+
+.meter-section h2{
+    color:#38bdf8;
+    font-size:38px;
+    margin-bottom:25px;
+}
+
+.progress-circle{
+    width:220px;
+    height:220px;
+    border-radius:50%;
+    margin:auto;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:conic-gradient(#22c55e 0deg, #1e293b 0deg);
+    box-shadow:0 0 30px rgba(34,197,94,0.3);
+    transition:1s ease;
+}
+
+.inner-circle{
+    width:160px;
+    height:160px;
+    background:#0f172a;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#score-text{
+    color:white;
+    font-size:42px;
+    font-weight:bold;
+}
+
+.summary-box{
+margin-top:25px;
+padding:22px;
+border-radius:16px;
+background:linear-gradient(135deg,#0ea5e9,#2563eb);
+color:white;
+box-shadow:0 10px 20px rgba(0,0,0,.25);
+}
+
+.summary-box h2{
+margin-bottom:10px;
+}
+
+.summary-box p{
+font-size:18px;
+line-height:1.6;
+}
+
+.tips-box{
+margin-top:20px;
+display:flex;
+flex-direction:column;
+gap:14px;
+}
+
+.tip-card{
+padding:16px 20px;
+border-radius:14px;
+font-size:18px;
+font-weight:bold;
+color:white;
+background:linear-gradient(135deg,#22c55e,#16a34a);
+box-shadow:0 8px 18px rgba(0,0,0,.25);
+transition:.3s;
+}
+
+.tip-card:nth-child(2){
+background:linear-gradient(135deg,#3b82f6,#2563eb);
+}
+
+.tip-card:nth-child(3){
+background:linear-gradient(135deg,#a855f7,#7e22ce);
+}
+
+.tip-card:nth-child(4){
+background:linear-gradient(135deg,#f59e0b,#d97706);
+}
+
+.tip-card:hover{
+transform:translateY(-3px) scale(1.02);
+}
+
+body{
+margin:0;
+padding:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+}
+
+.container{
+max-width:850px;
+margin:50px auto;
+background:#111827;
+padding:35px;
+border-radius:18px;
+box-shadow:0 0 25px rgba(0,0,0,.5);
+}
+
+h1{
+text-align:center;
+color:#38bdf8;
+margin-bottom:30px;
+}
+
+.card{
+background:#1f2937;
+padding:15px;
+margin:12px 0;
+border-radius:12px;
+font-size:20px;
+}
+
+.chart-box{
+display:flex;
+justify-content:center;
+margin:30px 0;
+}
+
+.circle{
+width:180px;
+height:180px;
+border-radius:50%;
+background:conic-gradient(
+#22c55e {{ score }}%,
+#374151 {{ score }}%
+);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+font-weight:bold;
+
+animation: fillchart 2s ease;
+transition: 1s;
+}
+
+.inner{
+width:130px;
+height:130px;
+background:#111827;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+a{
+display:inline-block;
+margin-top:25px;
+margin-right:15px;
+color:#38bdf8;
+text-decoration:none;
+font-size:18px;
+}
+
+@keyframes fillchart{
+0%{
+transform: scale(0);
+opacity:0;
+}
+100%{
+transform: scale(1);
+opacity:1;
+}
+}
+
+.section-box{
+margin-top:25px;
+padding:25px;
+border-radius:18px;
+background:#111827;
+color:white;
+}
+
+.bar-row{
+display:flex;
+justify-content:space-between;
+margin-top:15px;
+font-size:18px;
+}
+
+.bar{
+height:12px;
+background:#374151;
+border-radius:10px;
+overflow:hidden;
+margin-top:8px;
+}
+
+.fill{
+height:100%;
+background:linear-gradient(90deg,#22c55e,#3b82f6);
+border-radius:10px;
+}
+
+</style>
+</head>
+
+<script>
+let circle = document.querySelector(".progress-circle");
+let score = parseInt(circle.dataset.score);
+let text = document.getElementById("score-text");
+
+let count = 0;
+let color = "#22c55e";   // default green
+
+if(score <= 40){
+    color = "#ef4444";   // red
+}
+else if(score <= 70){
+    color = "#facc15";   // yellow
+}
+else{
+    color = "#22c55e";   // green
+}
+
+let interval = setInterval(() => {
+
+    if(count >= score){
+        clearInterval(interval);
+    }else{
+        count++;
+        text.innerText = count + "%";
+
+        circle.style.background =
+        `conic-gradient(${color} ${count * 3.6}deg, #1e293b 0deg)`;
+    }
+
+}, 20);
+
+.jd-match-box{
+    margin-top:25px;
+    padding:28px;
+    border-radius:22px;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    color:white;
+    box-shadow:0 12px 25px rgba(0,0,0,0.35);
+}
+
+.jd-match-box h2{
+    color:#38bdf8;
+    font-size:34px;
+    margin-bottom:18px;
+}
+
+.jd-match-box p{
+    font-size:22px;
+    margin:12px 0;
+    line-height:1.6;
+}
+</script>
+</script>
+
+<body>
+
+<div class="container">
+
+<h1>Resume Dashboard 🔥</h1>
+
+<div class="card"><b>Name:</b> {{ name }}</div>
+
+<div class="card"><b>Skills:</b> {{ skills | join(', ') }}</div>
+
+<div class="card"><b>Missing Skills:</b> {{ missing | join(', ') }}</div>
+
+<div class="summary-box">
+<h2>🤖 AI Summary</h2>
+<p>{{ summary }}</p>
+</div>
+
+<div class="jd-match-box">
+
+    <h2>💼 Job Description Match</h2>
+
+    <p><b>Required Skills:</b> {{ jd_skills | join(', ') }}</p>
+
+    <p><b>Missing Skills:</b> {{ missing | join(', ') }}</p>
+
+</div>
+
+<div class="section-box">
+<h2>📈 Section-wise Scores</h2>
+
+{% for key, value in sections.items() %}
+<div class="bar-row">
+    <span>{{ key }}</span>
+    <span>{{ value }}%</span>
+</div>
+
+<div class="bar">
+    <div class="fill" style="width: {{ value }}%;"></div>
+</div>
+{% endfor %}
+
+</div>
+
+<div class="card">
+
+<h2>💡 Suggestions</h2>
+
+<div class="tips-box">
+
+<div class="meter-section">
+
+    <h2>📊 ATS Score</h2>
+
+    <div class="progress-circle" data-score="{{ score }}">
+        <div class="inner-circle">
+            <span id="score-text">0%</span>
+        </div>
+    </div>
+
+</div>
+
+{% for tip in tips %}
+<div class="tip-card">
+✨ {{ tip }}
+</div>
+{% endfor %}
+
+</div>
+
+</div>
+
+<div class="chart-box">
+<div class="circle">
+<div class="inner">
+{{ score }}%
+</div>
+</div>
+</div>
+
+<a href="/">⬅ Upload Another Resume</a>
+
+<a href="/download">📄 Download PDF Report</a>
+
+</div>
+
+<script>
+
+let idleTime = 0;
+
+setInterval(timerIncrement, 60000);
+
+function timerIncrement() {
+    idleTime++;
+
+    if (idleTime >= 10) {
+        alert("Session expired due to inactivity.");
+        window.location.href = "/logout";
+    }
+}
+
+// Activity detect
+document.onmousemove = resetTimer;
+document.onkeypress = resetTimer;
+document.onclick = resetTimer;
+document.onscroll = resetTimer;
+
+function resetTimer() {
+    idleTime = 0;
+}
+
+</script>
+
+</body>
+</html>

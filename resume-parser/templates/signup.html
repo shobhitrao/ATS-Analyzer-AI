@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Signup</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+}
+
+.box{
+width:420px;
+background:#111827;
+padding:40px;
+border-radius:20px;
+box-shadow:0 0 30px rgba(0,0,0,.45);
+animation:fade 0.8s ease;
+}
+
+
+h1{
+font-size:64px;
+color:#38bdf8;
+margin-bottom:40px;
+}
+
+input{
+width:100%;
+height:65px;
+margin:15px 0;
+padding:0 25px;
+font-size:20px;
+border:none;
+border-radius:18px;
+background:#1e293b;
+color:white;
+box-sizing:border-box;
+}
+
+button{
+width:100%;
+height:65px;
+margin-top:20px;
+border:none;
+border-radius:18px;
+background:#38bdf8;
+font-size:22px;
+font-weight:bold;
+cursor:pointer;
+color:white;
+}
+
+a{
+display:block;
+margin-top:22px;
+font-size:18px;
+color:#38bdf8;
+text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>Signup 🔥</h1>
+
+<form method="POST">
+
+<input type="text" name="username" placeholder="Enter Username" required>
+
+<input type="email" name="email" placeholder="Enter Email" required>
+
+<input type="password" name="password" placeholder="Enter Password" required>
+
+<button type="submit">Signup</button>
+
+</form>
+
+<a href="/login">Already have account? Login</a>
+
+</div>
+
+</body>
+</html>
