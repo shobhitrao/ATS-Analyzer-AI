@@ -24,7 +24,7 @@ from app import (
 from utils import detect_experience
 
 # ===============================
-# NEW FUNCTION ADDED (ERROR FIX)
+# EXTRA SKILLS FUNCTION
 # ===============================
 def advanced_skills(text):
     skills = extract_skills(text)
@@ -41,12 +41,11 @@ def advanced_skills(text):
         if skill.lower() in text.lower():
             found.append(skill)
 
-    final_skills = list(set(skills + found))
-    return final_skills
+    return list(set(skills + found))
 
 
 # ===============================
-# App Setup
+# APP SETUP
 # ===============================
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=10)
@@ -63,7 +62,7 @@ report_data = {}
 otp_store = {}
 
 # ===============================
-# Database Models
+# DATABASE MODELS
 # ===============================
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,38 +84,39 @@ def session_timeout():
 
 
 # ===============================
-# Home
+# HOME PAGE
 # ===============================
-
 @app.route("/")
 def home():
     return render_template("landing.html")
 
 
-@app.route("/login")
+# ===============================
+# LOGIN
+# ===============================
+@app.route("/login", methods=["GET", "POST"])
 def login():
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            session["user"] = username
+            return redirect("/dashboard")
+
     return render_template("login.html")
 
 
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect("/login")
-    return render_template("index.html")
-
-@app.route("/history")
-def history():
-    if "user" not in session:
-        return redirect("/login")
-
-    return render_template("history.html")
-
-
 # ===============================
-# Signup
+# SIGNUP
 # ===============================
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+
     if request.method == "POST":
 
         username = request.form["username"]
@@ -143,31 +143,50 @@ def signup():
 
 
 # ===============================
-# Login
+# DASHBOARD
 # ===============================
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
+@app.route("/dashboard")
+def dashboard():
 
-        username = request.form["username"]
-        password = request.form["password"]
+    if "user" not in session:
+        return redirect("/login")
 
-        user = User.query.filter_by(username=username).first()
-
-        if user and check_password_hash(user.password, password):
-            session["user"] = username
-            return redirect("/")
-
-    return render_template("login.html")
+    return render_template("index.html")
 
 
 # ===============================
-# Upload Resume
+# HISTORY
+# ===============================
+@app.route("/history")
+def history():
+
+    if "user" not in session:
+        return redirect("/login")
+
+    reports = Report.query.filter_by(username=session["user"]).all()
+
+    return render_template("history.html", reports=reports)
+
+
+# ===============================
+# LOGOUT
+# ===============================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
+# ===============================
+# UPLOAD RESUME
 # ===============================
 @app.route("/upload", methods=["POST"])
 def upload():
 
     global report_data
+
+    if "user" not in session:
+        return redirect("/login")
 
     file = request.files["resume"]
     jd = request.form.get("jd", "").strip()
@@ -215,7 +234,6 @@ def upload():
         }
 
         tips = resume_tips(missing)
-
         summary = ai_summary(name, skills, score, missing)
 
         return render_template(
@@ -234,7 +252,7 @@ def upload():
 
 
 # ===============================
-# Download PDF
+# DOWNLOAD PDF
 # ===============================
 @app.route("/download")
 def download():
@@ -258,7 +276,7 @@ def download():
 
 
 # ===============================
-# Run App
+# RUN APP
 # ===============================
 with app.app_context():
     db.create_all()
