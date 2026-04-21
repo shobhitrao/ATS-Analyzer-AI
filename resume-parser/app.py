@@ -2,12 +2,10 @@ import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from parser import extract_text
-import spacy
 
 # ===============================
 # NLP Model Load
 # ===============================
-nlp = spacy.load("en_core_web_sm")
 
 def jd_suggestions(jd):
     tips = []
