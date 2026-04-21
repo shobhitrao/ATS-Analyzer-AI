@@ -50,6 +50,13 @@ width:80%;
 max-width:420px;
 }
 
+#fileStatus{
+margin-top:12px;
+font-size:16px;
+font-weight:bold;
+color:#22c55e;
+}
+
 button{
 margin-top:18px;
 padding:12px 24px;
@@ -139,14 +146,16 @@ box-sizing:border-box;
 
 <form action="/upload" method="POST" enctype="multipart/form-data">
 
-<input type="file" name="resume" required>
+<input type="file" id="resumeFile" name="resume" required>
+
+<p id="fileStatus">No file selected</p>
 
 <br>
 
 <div class="jd-box">
 <label>📄 Enter Job Description</label>
 
-<textarea name="jd" placeholder="Add Job Description here..." ></textarea>
+<textarea name="jd" placeholder="Add Job Description here..."></textarea>
 </div>
 
 <button type="submit">📄 Upload Resume</button>
@@ -172,6 +181,16 @@ Smart Resume Analyzer Dashboard
 </div>
 
 <script>
+
+document.getElementById("resumeFile").addEventListener("change", function () {
+const file = this.files[0];
+
+if(file){
+document.getElementById("fileStatus").innerHTML = "✅ PDF Selected: " + file.name;
+}else{
+document.getElementById("fileStatus").innerHTML = "No file selected";
+}
+});
 
 let idleTime = 0;
 

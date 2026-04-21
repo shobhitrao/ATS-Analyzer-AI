@@ -87,11 +87,29 @@ def session_timeout():
 # ===============================
 # Home
 # ===============================
+
 @app.route("/")
 def home():
+    return render_template("landing.html")
+
+
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
+@app.route("/dashboard")
+def dashboard():
     if "user" not in session:
         return redirect("/login")
     return render_template("index.html")
+
+@app.route("/history")
+def history():
+    if "user" not in session:
+        return redirect("/login")
+
+    return render_template("history.html")
 
 
 # ===============================
