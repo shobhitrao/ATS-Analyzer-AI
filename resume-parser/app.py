@@ -40,21 +40,20 @@ def jd_suggestions(jd):
 # 🧠 Skills Extract (NLP Based)
 # ===============================
 def extract_skills(text):
-    doc = nlp(text)
 
     skills_list = [
-    "python", "java", "javascript", "c++", "react",
-    "node", "express", "html", "css",
-    "sql", "mongodb", "mysql",
-    "git", "github", "pandas", "numpy",
-    "aws", "docker", "kubernetes"
-]
+        "python", "java", "javascript", "c++", "react",
+        "node", "express", "html", "css",
+        "sql", "mongodb", "mysql",
+        "git", "github", "pandas", "numpy",
+        "aws", "docker", "kubernetes"
+    ]
 
     found = []
 
-    for token in doc:
-        word = token.text.lower()
+    words = text.lower().split()
 
+    for word in words:
         if word in skills_list:
             found.append(word)
 
