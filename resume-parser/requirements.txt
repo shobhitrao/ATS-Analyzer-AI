@@ -9,6 +9,5 @@ scikit-learn
 reportlab
 pytesseract
 pdf2image
-spacy==3.7.2
 setuptools
 wheel
