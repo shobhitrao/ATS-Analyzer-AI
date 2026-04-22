@@ -108,3 +108,28 @@ def advanced_skills(text):
             found.append(skill)
 
     return found
+
+def match_score(resume_text, jd_text):
+    resume_skills = extract_skills(resume_text)
+    jd_skills = extract_skills(jd_text)
+
+    if not jd_skills:
+        return 75
+
+    matched = 0
+
+    for skill in jd_skills:
+        if skill in resume_skills:
+            matched += 1
+
+    score = int((matched / len(jd_skills)) * 100)
+    return score
+
+def missing_skills(user_skills, jd_skills):
+    return [skill for skill in jd_skills if skill not in user_skills]
+
+def resume_tips(missing):
+    tips = []
+    for skill in missing:
+        tips.append(f"Add {skill} in projects or skills section.")
+    return tips
