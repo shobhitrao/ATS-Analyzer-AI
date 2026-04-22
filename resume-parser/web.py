@@ -191,6 +191,8 @@ def upload():
     file = request.files["resume"]
     jd = request.form.get("jd", "").strip()
 
+    print("USER JD =", jd)   # DEBUG
+
     if file:
 
         filename = str(int(time.time())) + "_" + file.filename
@@ -201,6 +203,8 @@ def upload():
 
         name = extract_name(text)
         skills = advanced_skills(text)
+
+        print("RESUME SKILLS =", skills)   # DEBUG
 
         if jd:
             jd_skills = extract_skills(jd)
@@ -216,6 +220,9 @@ def upload():
             jd_skills = extract_skills(jd)
             score = match_score(text, jd)
             missing = missing_skills(skills, jd_skills)
+
+        print("JD SKILLS =", jd_skills)   # DEBUG
+        print("FINAL SCORE =", score)     # DEBUG
 
         new_report = Report(
             username=session["user"],
