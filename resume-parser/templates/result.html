@@ -218,28 +218,29 @@ border-radius:10px;
 </head>
 
 <script>
+document.addEventListener("DOMContentLoaded", function(){
+
 let circle = document.querySelector(".progress-circle");
-let score = parseInt(circle.dataset.score);
+if(!circle) return;
+
+let score = parseInt(circle.dataset.score) || 0;
 let text = document.getElementById("score-text");
 
 let count = 0;
-let color = "#22c55e";   // default green
+let color = "#22c55e";
 
 if(score <= 40){
-    color = "#ef4444";   // red
+    color = "#ef4444";
 }
 else if(score <= 70){
-    color = "#facc15";   // yellow
-}
-else{
-    color = "#22c55e";   // green
+    color = "#facc15";
 }
 
 let interval = setInterval(() => {
 
     if(count >= score){
         clearInterval(interval);
-    }else{
+    } else {
         count++;
         text.innerText = count + "%";
 
@@ -248,6 +249,9 @@ let interval = setInterval(() => {
     }
 
 }, 20);
+
+});
+</script>
 
 .jd-match-box{
     margin-top:25px;
