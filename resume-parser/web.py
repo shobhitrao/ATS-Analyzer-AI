@@ -12,16 +12,17 @@ from email.mime.text import MIMEText
 
 from parser import extract_text
 
-from utils import (
+from app import (
     extract_name,
     extract_skills,
     match_score,
     resume_tips,
     ai_summary,
     section_scores,
-    missing_skills,
-    detect_experience
+    missing_skills
 )
+
+from utils import detect_experience
 
 # ===============================
 # EXTRA SKILLS FUNCTION
