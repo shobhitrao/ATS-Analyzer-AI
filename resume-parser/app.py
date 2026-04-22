@@ -99,40 +99,6 @@ def extract_name(text):
 
     return "Not Found"
 
-
-def match_score(resume, jd):
-
-    vectorizer = TfidfVectorizer()
-
-    vectors = vectorizer.fit_transform([resume, jd])
-
-    similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0] * 100
-
-    similarity_part = similarity * 40
-
-    jd_skills = [
-        "python", "react", "sql",
-        "html", "css", "git",
-        "aws", "node"
-    ]
-
-    found = 0
-
-    for skill in jd_skills:
-        if skill.lower() in resume.lower():
-            found += 1
-
-    skills_percent = (found / len(jd_skills)) * 100
-    skills_part = (skills_percent / 100) * 40
-
-    bonus = 0
-
-    if len(resume) > 800:
-        bonus += 10
-
-    if re.search(r'\b(project|experience|education)\b', resume.lower()):
-        bonus += 10
-
     # -----------------------
     # Final Score
     # -----------------------
