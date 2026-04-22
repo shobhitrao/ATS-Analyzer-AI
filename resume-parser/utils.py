@@ -109,14 +109,16 @@ def advanced_skills(text):
 
     return found
 
-def match_score(resume, jd):
-    resume_skills = set(extract_skills(resume.lower()))
-    jd_skills = set(extract_skills(jd.lower()))
+def match_score(resume_text, jd_text):
 
-    if not jd_skills:
+    resume_skills = set(extract_skills(resume_text.lower()))
+    jd_skills = set(extract_skills(jd_text.lower()))
+
+    if len(jd_skills) == 0:
         return 0
 
     matched = len(resume_skills.intersection(jd_skills))
+
     score = int((matched / len(jd_skills)) * 100)
 
     if score > 100:
