@@ -114,33 +114,40 @@ def login():
 # ===============================
 # SIGNUP
 # ===============================
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
     if request.method == "POST":
 
-        username = request.form["username"]
-        email = request.form["email"]
-        password = request.form["password"]
+        try:
+            username = request.form["username"]
+            email = request.form["email"]
+            password = request.form["password"]
 
-        existing = User.query.filter_by(username=username).first()
+            existing = User.query.filter(
+                (User.username == username) | (User.email == email)
+            ).first()
 
-        if existing:
-            return "Username already exists"
+            if existing:
+                return "Username or Email already exists"
 
-        user = User(
-            username=username,
-            email=email,
-            password=generate_password_hash(password)
-        )
+            user = User(
+                username=username,
+                email=email,
+                password=generate_password_hash(password)
+            )
 
-        db.session.add(user)
-        db.session.commit()
+            db.session.add(user)
+            db.session.commit()
 
-        return redirect("/login")
+            return redirect("/login")
+
+        except Exception as e:
+            db.session.rollback()
+            return str(e)
 
     return render_template("signup.html")
-
 
 # ===============================
 # DASHBOARD
@@ -180,82 +187,7 @@ def logout():
 # ===============================
 # UPLOAD RESUME
 # ===============================
-@app.route("/upload", methods=["POST"])
-def upload():
 
-    global report_data
-
-    if "user" not in session:
-        return redirect("/login")
-
-    file = request.files["resume"]
-    jd = request.form.get("jd", "").strip()
-
-    print("USER JD =", jd)   # DEBUG
-
-    if file:
-
-        filename = str(int(time.time())) + "_" + file.filename
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
-
-        text = extract_text(filepath)
-
-        name = extract_name(text)
-        skills = advanced_skills(text)
-
-        print("RESUME SKILLS =", skills)   # DEBUG
-
-        if jd:
-            jd_skills = extract_skills(jd)
-            score = match_score(text, jd)
-            missing = missing_skills(skills, jd_skills)
-
-        else:
-            jd = """
-            Looking for Python Developer with React, SQL,
-            HTML, CSS, Git, AWS knowledge.
-            """
-
-            jd_skills = extract_skills(jd)
-            score = match_score(text, jd)
-            missing = missing_skills(skills, jd_skills)
-
-        print("JD SKILLS =", jd_skills)   # DEBUG
-        print("FINAL SCORE =", score)     # DEBUG
-
-        new_report = Report(
-            username=session["user"],
-            score=str(score),
-            skills=", ".join(skills)
-        )
-
-        db.session.add(new_report)
-        db.session.commit()
-
-        report_data = {
-            "name": name,
-            "skills": skills,
-            "score": score,
-            "missing": missing
-        }
-
-        tips = resume_tips(missing)
-        summary = ai_summary(name, skills, score, missing)
-
-        return render_template(
-            "result.html",
-            name=name,
-            skills=skills,
-            score=score,
-            tips=tips,
-            missing=missing,
-            summary=summary,
-            jd_skills=jd_skills,
-            sections=section_scores(skills, text)
-        )
-
-    return "No File Selected"
 
 
 # ===============================
