@@ -108,7 +108,7 @@ def match_score(resume, jd):
 
     similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0] * 100
 
-    similarity_part = (similarity / 100) * 40
+    similarity_part = similarity * 40
 
     jd_skills = [
         "python", "react", "sql",
