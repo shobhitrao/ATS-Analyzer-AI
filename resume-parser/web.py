@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, session, redirect, send_file
 from reportlab.pdfgen import canvas
 import os
 import time
-import random
 import smtplib
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,14 +14,14 @@ from parser import extract_text
 from app import (
     extract_name,
     extract_skills,
-    match_score,
     resume_tips,
     ai_summary,
     section_scores,
     missing_skills
 )
 
-from utils import detect_experience
+from utils import detect_experience, match_score
+
 
 # ===============================
 # EXTRA SKILLS FUNCTION
@@ -65,6 +64,8 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 report_data = {}
 otp_store = {}
+
+
 # ===============================
 # DATABASE MODELS
 # ===============================
@@ -118,7 +119,6 @@ def login():
 # ===============================
 # SIGNUP
 # ===============================
-
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
@@ -152,6 +152,7 @@ def signup():
             return str(e)
 
     return render_template("signup.html")
+
 
 # ===============================
 # DASHBOARD
@@ -191,7 +192,6 @@ def logout():
 # ===============================
 # UPLOAD RESUME
 # ===============================
-
 @app.route("/upload", methods=["POST"])
 def upload():
 
@@ -216,18 +216,15 @@ def upload():
 
         if jd:
             jd_skills = extract_skills(jd)
-            score = match_score(text, jd)
-            missing = missing_skills(skills, jd_skills)
-
         else:
             jd = """
             Looking for Python Developer with React, SQL,
             HTML, CSS, Git, AWS knowledge.
             """
-
             jd_skills = extract_skills(jd)
-            score = match_score(text, jd)
-            missing = missing_skills(skills, jd_skills)
+
+        score = match_score(text, jd)
+        missing = missing_skills(skills, jd_skills)
 
         new_report = Report(
             username=session["user"],
@@ -261,6 +258,7 @@ def upload():
         )
 
     return "No File Selected"
+
 
 # ===============================
 # DOWNLOAD PDF
