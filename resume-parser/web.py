@@ -11,7 +11,8 @@ from datetime import timedelta
 from email.mime.text import MIMEText
 
 from parser import extract_text
-from app import (
+
+from utils import (
     extract_name,
     extract_skills,
     match_score,
@@ -19,9 +20,8 @@ from app import (
     ai_summary,
     section_scores,
     missing_skills,
+    detect_experience
 )
-
-from utils import detect_experience
 
 # ===============================
 # EXTRA SKILLS FUNCTION
