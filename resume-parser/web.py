@@ -88,7 +88,7 @@ def session_timeout():
 # ===============================
 @app.route("/")
 def home():
-    return render_template("landing.html")
+    return render_template("index.html")
 
 
 # ===============================
