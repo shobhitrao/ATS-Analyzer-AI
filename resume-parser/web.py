@@ -188,7 +188,75 @@ def logout():
 # UPLOAD RESUME
 # ===============================
 
+@app.route("/upload", methods=["POST"])
+def upload():
 
+    global report_data
+
+    if "user" not in session:
+        return redirect("/login")
+
+    file = request.files["resume"]
+    jd = request.form.get("jd", "").strip()
+
+    if file:
+
+        filename = str(int(time.time())) + "_" + file.filename
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        text = extract_text(filepath)
+
+        name = extract_name(text)
+        skills = advanced_skills(text)
+
+        if jd:
+            jd_skills = extract_skills(jd)
+            score = match_score(text, jd)
+            missing = missing_skills(skills, jd_skills)
+
+        else:
+            jd = """
+            Looking for Python Developer with React, SQL,
+            HTML, CSS, Git, AWS knowledge.
+            """
+
+            jd_skills = extract_skills(jd)
+            score = match_score(text, jd)
+            missing = missing_skills(skills, jd_skills)
+
+        new_report = Report(
+            username=session["user"],
+            score=str(score),
+            skills=", ".join(skills)
+        )
+
+        db.session.add(new_report)
+        db.session.commit()
+
+        report_data = {
+            "name": name,
+            "skills": skills,
+            "score": score,
+            "missing": missing
+        }
+
+        tips = resume_tips(missing)
+        summary = ai_summary(name, skills, score, missing)
+
+        return render_template(
+            "result.html",
+            name=name,
+            skills=skills,
+            score=score,
+            tips=tips,
+            missing=missing,
+            summary=summary,
+            jd_skills=jd_skills,
+            sections=section_scores(skills, text)
+        )
+
+    return "No File Selected"
 
 # ===============================
 # DOWNLOAD PDF
