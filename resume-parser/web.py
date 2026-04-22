@@ -54,7 +54,7 @@ app.secret_key = "ATS Analyzer AI123"
 EMAIL_ADDRESS = "shobhitrao.2005@gmail.com"
 EMAIL_PASSWORD = "dmrd puhs glyz qnxj"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///ATS Analyzer AI.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
 db = SQLAlchemy(app)
 
 UPLOAD_FOLDER = "uploads"
