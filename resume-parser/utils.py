@@ -230,3 +230,20 @@ def ai_summary(name, skills, score, missing):
         improve = " No major skills missing."
 
     return f"{name} has a {level} resume with ATS score of {score}%. Strong skills include {top_skills}.{improve}"
+
+# ===============================
+# SECTION SCORES FUNCTION
+# ===============================
+def section_scores(skills, text):
+
+    text = text.lower()
+
+    scores = {
+        "Skills": 90 if len(skills) >= 5 else 70,
+        "Experience": 85 if "experience" in text else 60,
+        "Education": 85 if "education" in text or "b.tech" in text or "bca" in text else 65,
+        "Projects": 90 if "project" in text else 60,
+        "Formatting": 80
+    }
+
+    return scores
