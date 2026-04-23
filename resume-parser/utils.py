@@ -1,6 +1,46 @@
 import re
 
 
+def extract_email(text):
+    match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+    return match.group(0) if match else "Not Found"
+
+def extract_phone(text):
+    match = re.search(r'\+?\d[\d\s\-]{8,15}', text)
+    return match.group(0) if match else "Not Found"
+
+def extract_name(text):
+    lines = text.strip().split("\n")
+
+    for line in lines[:5]:
+        line = line.strip()
+        if len(line.split()) >= 2 and len(line) < 30:
+            return line.title()
+
+    return "Candidate"
+
+def detect_experience(text):
+    text = text.lower()
+
+    patterns = [
+        r'(\d+)\+?\s+years',
+        r'(\d+)\+?\s+yrs',
+        r'(\d+)\+?\s+year',
+        r'(\d+)\+?\s+yr'
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(1) + " Years"
+
+    if "internship" in text:
+        return "Internship Experience"
+
+    if "fresher" in text:
+        return "Fresher"
+
+    return "Not Mentioned"
 
 
 # Extract Email
