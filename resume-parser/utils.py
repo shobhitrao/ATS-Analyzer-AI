@@ -1,7 +1,5 @@
 import re
-import spacy
 
-nlp = spacy.load("en_core_web_sm")
 
 def extract_email(text):
     match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
@@ -12,14 +10,12 @@ def extract_phone(text):
     return match.group(0) if match else "Not Found"
 
 def extract_name(text):
-    lines = text.strip().split("\n")
-
-    for line in lines[:5]:
+    lines = text.split("\n")
+    for line in lines:
         line = line.strip()
-        if len(line.split()) >= 2 and len(line) < 30:
-            return line.title()
-
-    return "Candidate"
+        if len(line) > 2 and len(line.split()) <= 3:
+            return line
+    return "Unknown"
 
 def detect_experience(text):
     text = text.lower()
@@ -65,25 +61,19 @@ skills_list = [
 ]
 
 def extract_skills(text):
-    text = text.lower()
-
-    skills_db = [
-        "python","java","c++","javascript","html","css",
-        "flask","django","react","nodejs",
-        "sql","mysql","mongodb",
-        "aws","azure","docker","linux",
-        "git","github","api","rest api",
-        "pandas","numpy","machine learning"
+    skills_list = [
+        "python","java","c++","html","css","javascript","sql",
+        "flask","django","react","node","machine learning",
+        "excel","power bi"
     ]
-
     found = []
+    lower_text = text.lower()
 
-    for skill in skills_db:
-        pattern = r'\b' + re.escape(skill) + r'\b'
-        if re.search(pattern, text):
+    for skill in skills_list:
+        if skill in lower_text:
             found.append(skill)
 
-    return list(set(found))
+    return found
 
 def advanced_skills(text):
     return extract_skills(text)
