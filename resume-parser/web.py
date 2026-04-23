@@ -51,6 +51,12 @@ app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=10)
 app.secret_key = "ATS Analyzer AI123"
 
+app.config["SESSION_PERMANENT"] = True
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 EMAIL_ADDRESS = "shobhitrao.2005@gmail.com"
 EMAIL_PASSWORD = "dmrd puhs glyz qnxj"
 
@@ -111,6 +117,7 @@ def login():
 
         if user and check_password_hash(user.password, password):
             session["user"] = username
+            session.permanent = True
             return redirect("/dashboard")
 
     return render_template("login.html")
