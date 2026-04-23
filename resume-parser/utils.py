@@ -1,12 +1,4 @@
 import re
-from utils import (
-    extract_skills,
-    advanced_skills,
-    detect_experience,
-    extract_email,
-    extract_phone,
-    extract_name
-)
 
 def extract_email(text):
     match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
