@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_file
 from reportlab.pdfgen import canvas
 import os
 import time
@@ -29,6 +29,7 @@ app.permanent_session_lifetime = timedelta(minutes=10)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = SQLAlchemy(app)
 
 UPLOAD_FOLDER = "uploads"
@@ -37,16 +38,13 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 report_data = {}
 
-
 # ---------------- MODELS ----------------
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
     email = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(300))
-    
-    with app.app_context():
-       db.create_all()
 
 
 class Report(db.Model):
@@ -62,6 +60,7 @@ def session_timeout():
 
 
 # ---------------- ROUTES ----------------
+
 @app.route("/")
 def home():
     try:
@@ -99,10 +98,11 @@ def signup():
     except Exception as e:
         return f"Signup Error: {str(e)}"
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        try:
+    try:
+        if request.method == "POST":
             username = request.form.get("username")
             password = request.form.get("password")
 
@@ -113,14 +113,14 @@ def login():
 
             if user:
                 session["user"] = user.username
-                return redirect("/")
+                return redirect("/dashboard")
 
             return "Invalid Login"
 
-        except Exception as e:
-            return str(e)
+        return render_template("login.html")
 
-    return render_template("login.html")
+    except Exception as e:
+        return f"Login Error: {str(e)}"
 
 
 @app.route("/dashboard")
@@ -147,6 +147,7 @@ def history():
 
 
 # ---------------- UPLOAD ----------------
+
 @app.route("/upload", methods=["POST"])
 def upload():
     global report_data
@@ -170,17 +171,17 @@ def upload():
 
     try:
         email = extract_email(text)
-    except Exception:
+    except:
         email = "Not Found"
 
     try:
         phone = extract_phone(text)
-    except Exception:
+    except:
         phone = "Not Found"
 
     try:
         experience = detect_experience(text)
-    except Exception:
+    except:
         experience = "0 Years"
 
     skills = advanced_skills(text)
@@ -253,6 +254,7 @@ def download():
 
 with app.app_context():
     db.create_all()
+
 
 if __name__ == "__main__":
     app.run(debug=True)
