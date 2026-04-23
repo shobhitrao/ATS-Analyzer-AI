@@ -73,28 +73,21 @@ def home():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        try:
-            username = request.form.get("username")
-            email = request.form.get("email")
-            password = request.form.get("password")
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-            if not username or not email or not password:
-                return "Fill all fields"
+        old_user = User.query.filter_by(email=email).first()
 
-            user = User(
-                username=username,
-                email=email,
-                password=password
-            )
+        if old_user:
+            return "Email already registered. Please login."
 
-            db.session.add(user)
-            db.session.commit()
+        user = User(username=username, email=email, password=password)
 
-            return redirect("/login")
+        db.session.add(user)
+        db.session.commit()
 
-        except Exception as e:
-            db.session.rollback()
-            return str(e)
+        return redirect("/login")
 
     return render_template("signup.html")
 
