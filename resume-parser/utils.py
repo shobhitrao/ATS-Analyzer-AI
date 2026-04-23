@@ -206,3 +206,27 @@ def resume_tips(missing):
     for skill in missing:
         tips.append(f"Add {skill} in projects or skills section.")
     return tips
+
+# ===============================
+# AI SUMMARY FUNCTION
+# ===============================
+def ai_summary(name, skills, score, missing):
+
+    top_skills = ", ".join(skills[:5])
+
+    if score >= 85:
+        level = "excellent"
+    elif score >= 70:
+        level = "strong"
+    elif score >= 50:
+        level = "average"
+    else:
+        level = "needs improvement"
+
+    if missing:
+        miss = ", ".join(missing[:3])
+        improve = f" Adding {miss} can improve hiring chances."
+    else:
+        improve = " No major skills missing."
+
+    return f"{name} has a {level} resume with ATS score of {score}%. Strong skills include {top_skills}.{improve}"
