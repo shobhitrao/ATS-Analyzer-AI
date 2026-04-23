@@ -24,30 +24,27 @@ skills_list = [
 
 def extract_skills(text):
     text = text.lower()
-    found = []
-    for skill in skills_list:
-        if skill in text:
-            found.append(skill)
-    return list(set(found))
-
-def advanced_skills(text):
 
     skills_db = [
-        "python", "java", "c++", "html", "css",
-        "javascript", "react", "node", "flask",
-        "django", "sql", "mysql", "mongodb",
-        "git", "github", "aws", "docker"
+        "python","java","c++","javascript","html","css",
+        "flask","django","react","nodejs",
+        "sql","mysql","mongodb",
+        "aws","azure","docker","linux",
+        "git","github","api","rest api",
+        "pandas","numpy","machine learning"
     ]
 
     found = []
 
-    text = text.lower()
-
     for skill in skills_db:
-        if re.search(r'\b' + re.escape(skill) + r'\b', text):
+        pattern = r'\b' + re.escape(skill) + r'\b'
+        if re.search(pattern, text):
             found.append(skill)
 
-    return found
+    return list(set(found))
+
+def advanced_skills(text):
+    return extract_skills(text)
 
 def detect_experience(text):
 
