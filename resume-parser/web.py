@@ -1,3 +1,5 @@
+from pydoc import text
+
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, request, session, redirect, send_file
 from reportlab.pdfgen import canvas
@@ -11,13 +13,18 @@ from email.mime.text import MIMEText
 
 from parser import extract_text
 
-from app import (
+from utils import (
     extract_name,
     extract_skills,
+    advanced_skills,
+    match_score,
+    detect_experience,
+    extract_email,
+    extract_phone,
+    missing_skills,
     resume_tips,
     ai_summary,
-    section_scores,
-    missing_skills
+    section_scores
 )
 
 from utils import detect_experience, match_score
@@ -220,11 +227,24 @@ def upload():
 
         # NLP Data
         name = extract_name(text)
-        email = extract_email(text)
-        phone = extract_phone(text)
-        experience = detect_experience(text)
+
+        try:
+           email = extract_email(text)
+        except:
+           email = "Not Found"
+
+        try:
+          phone = extract_phone(text)
+        except:
+         phone = "Not Found"
+
+        try:
+          experience = detect_experience(text)
+        except:
+         experience = "0 Years"
 
         skills = advanced_skills(text)
+        
 
         if jd:
             jd_skills = extract_skills(jd)
