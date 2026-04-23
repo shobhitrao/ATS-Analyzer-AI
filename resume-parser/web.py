@@ -1,15 +1,11 @@
-from pydoc import text
-
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, request, session, redirect, send_file
 from reportlab.pdfgen import canvas
 import os
 import time
-import smtplib
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
-from email.mime.text import MIMEText
 
 from parser import extract_text
 
@@ -27,61 +23,21 @@ from utils import (
     section_scores
 )
 
-from utils import detect_experience, match_score
-
-
-# ===============================
-# EXTRA SKILLS FUNCTION
-# ===============================
-def advanced_skills(text):
-    skills = extract_skills(text)
-
-    extra = [
-        "python", "sql", "html", "css", "javascript",
-        "react", "git", "github", "aws", "flask",
-        "django", "pandas", "numpy"
-    ]
-
-    found = []
-
-    for skill in extra:
-        if skill.lower() in text.lower():
-            found.append(skill)
-
-    return list(set(skills + found))
-
-
-# ===============================
-# APP SETUP
-# ===============================
 app = Flask(__name__)
-app.permanent_session_lifetime = timedelta(minutes=10)
 app.secret_key = "ATS Analyzer AI123"
-
-app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_COOKIE_SECURE"] = False
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-
-EMAIL_ADDRESS = "shobhitrao.2005@gmail.com"
-EMAIL_PASSWORD = "dmrd puhs glyz qnxj"
+app.permanent_session_lifetime = timedelta(minutes=10)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
 db = SQLAlchemy(app)
 
 UPLOAD_FOLDER = "uploads"
-
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 report_data = {}
-otp_store = {}
 
 
-# ===============================
-# DATABASE MODELS
-# ===============================
+# ---------------- MODELS ----------------
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
@@ -101,22 +57,36 @@ def session_timeout():
     session.permanent = True
 
 
-# ===============================
-# HOME PAGE
-# ===============================
+# ---------------- ROUTES ----------------
 @app.route("/")
 def home():
     return redirect("/signup")
 
 
-# ===============================
-# LOGIN
-# ===============================
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+
+        user = User(
+            username=username,
+            email=email,
+            password=generate_password_hash(password)
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect("/login")
+
+    return render_template("signup.html")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "POST":
-
         username = request.form["username"]
         password = request.form["password"]
 
@@ -124,91 +94,37 @@ def login():
 
         if user and check_password_hash(user.password, password):
             session["user"] = username
-            session.permanent = True
             return redirect("/dashboard")
 
     return render_template("login.html")
 
 
-# ===============================
-# SIGNUP
-# ===============================
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-
-    if request.method == "POST":
-
-        try:
-            username = request.form["username"]
-            email = request.form["email"]
-            password = request.form["password"]
-
-            existing = User.query.filter(
-                (User.username == username) | (User.email == email)
-            ).first()
-
-            if existing:
-                return "Username or Email already exists"
-
-            user = User(
-                username=username,
-                email=email,
-                password=generate_password_hash(password)
-            )
-
-            db.session.add(user)
-            db.session.commit()
-
-            return redirect("/login")
-
-        except Exception as e:
-            db.session.rollback()
-            return str(e)
-
-    return render_template("signup.html")
-
-
-# ===============================
-# DASHBOARD
-# ===============================
 @app.route("/dashboard")
 def dashboard():
-
     if "user" not in session:
         return redirect("/login")
 
     return render_template("index.html")
 
 
-# ===============================
-# HISTORY
-# ===============================
-@app.route("/history")
-def history():
-
-    if "user" not in session:
-        return redirect("/login")
-
-    reports = Report.query.filter_by(username=session["user"]).all()
-
-    return render_template("history.html", reports=reports)
-
-
-# ===============================
-# LOGOUT
-# ===============================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
 
-# ===============================
-# UPLOAD RESUME
-# ===============================
+@app.route("/history")
+def history():
+    if "user" not in session:
+        return redirect("/login")
+
+    reports = Report.query.filter_by(username=session["user"]).all()
+    return render_template("history.html", reports=reports)
+
+
+# ---------------- UPLOAD ----------------
 @app.route("/upload", methods=["POST"])
 def upload():
-
     global report_data
 
     if "user" not in session:
@@ -217,116 +133,100 @@ def upload():
     file = request.files["resume"]
     jd = request.form.get("jd", "").strip()
 
-    if file:
+    if not file:
+        return "No File Selected"
 
-        filename = str(int(time.time())) + "_" + file.filename
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
+    filename = str(int(time.time())) + "_" + file.filename
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
 
-        text = extract_text(filepath)
+    text = extract_text(filepath)
 
-        # NLP Data
-        name = extract_name(text)
+    name = extract_name(text)
 
-        try:
-           email = extract_email(text)
-        except:
-           email = "Not Found"
+    try:
+        email = extract_email(text)
+    except Exception:
+        email = "Not Found"
 
-        try:
-          phone = extract_phone(text)
-        except:
-         phone = "Not Found"
+    try:
+        phone = extract_phone(text)
+    except Exception:
+        phone = "Not Found"
 
-        try:
-          experience = detect_experience(text)
-        except:
-         experience = "0 Years"
+    try:
+        experience = detect_experience(text)
+    except Exception:
+        experience = "0 Years"
 
-        skills = advanced_skills(text)
-        
+    skills = advanced_skills(text)
 
-        if jd:
-            jd_skills = extract_skills(jd)
-        else:
-            jd = """
-            Looking for Python Developer with React, SQL,
-            HTML, CSS, Git, AWS knowledge.
-            """
-            jd_skills = extract_skills(jd)
+    if jd:
+        jd_skills = extract_skills(jd)
+    else:
+        jd = """
+        Looking for Python Developer with React, SQL,
+        HTML, CSS, Git, AWS knowledge.
+        """
+        jd_skills = extract_skills(jd)
 
-        score = match_score(text, jd)
-        missing = missing_skills(skills, jd_skills)
+    score = match_score(text, jd)
+    missing = missing_skills(skills, jd_skills)
 
-        new_report = Report(
-            username=session["user"],
-            score=str(score),
-            skills=", ".join(skills)
-        )
+    new_report = Report(
+        username=session["user"],
+        score=str(score),
+        skills=", ".join(skills)
+    )
 
-        db.session.add(new_report)
-        db.session.commit()
+    db.session.add(new_report)
+    db.session.commit()
 
-        report_data = {
-            "name": name,
-            "email": email,
-            "phone": phone,
-            "experience": experience,
-            "skills": skills,
-            "score": score,
-            "missing": missing
-        }
+    report_data = {
+        "name": name,
+        "skills": skills,
+        "score": score,
+        "missing": missing
+    }
 
-        tips = resume_tips(missing)
-        summary = ai_summary(name, skills, score, missing)
+    tips = resume_tips(missing)
+    summary = ai_summary(name, skills, score, missing)
 
-        # File: web.py
-        # Template File: templates/result.html
-        return render_template(
-            "result.html",
-            name=name,
-            email=email,
-            phone=phone,
-            experience=experience,
-            skills=skills,
-            score=score,
-            tips=tips,
-            missing=missing,
-            summary=summary,
-            jd_skills=jd_skills,
-            sections=section_scores(skills, text)
-        )
-
-    return "No File Selected"
+    return render_template(
+        "result.html",
+        name=name,
+        email=email,
+        phone=phone,
+        experience=experience,
+        skills=skills,
+        score=score,
+        tips=tips,
+        missing=missing,
+        summary=summary,
+        jd_skills=jd_skills,
+        sections=section_scores(skills, text)
+    )
 
 
-# ===============================
-# DOWNLOAD PDF
-# ===============================
 @app.route("/download")
 def download():
-
     file_path = "report.pdf"
 
     c = canvas.Canvas(file_path)
-
     c.setFont("Helvetica-Bold", 18)
     c.drawString(160, 800, "ATS Analyzer AI Report")
 
     c.setFont("Helvetica", 12)
-    c.drawString(50, 750, "Name: " + str(report_data["name"]))
-    c.drawString(50, 720, "Skills: " + ", ".join(report_data["skills"]))
-    c.drawString(50, 690, "Score: " + str(report_data["score"]) + "%")
-    c.drawString(50, 660, "Missing: " + ", ".join(report_data["missing"]))
+    c.drawString(50, 750, "Name: " + str(report_data.get("name", "")))
+    c.drawString(50, 720, "Skills: " + ", ".join(report_data.get("skills", [])))
+    c.drawString(50, 690, "Score: " + str(report_data.get("score", 0)) + "%")
+    c.drawString(50, 660, "Missing: " + ", ".join(report_data.get("missing", [])))
 
     c.save()
 
     return send_file(file_path, as_attachment=True)
 
 
-# ===============================
-# RUN APP
-# ===============================
 with app.app_context():
     db.create_all()
 
