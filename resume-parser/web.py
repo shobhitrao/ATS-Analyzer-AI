@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, render_template, request, session, redirect, send_file
+from flask import Flask, render_template, request, redirect, session
 from reportlab.pdfgen import canvas
 import os
 import time
@@ -72,30 +72,22 @@ def home():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-
     if request.method == "POST":
-
         try:
-            username = request.form["username"]
-            email = request.form["email"]
-            password = request.form["password"]
+            username = request.form.get("username")
+            email = request.form.get("email")
+            password = request.form.get("password")
 
-            existing = User.query.filter(
-                (User.username == username) | (User.email == email)
-            ).first()
+            if not username or not email or not password:
+                return "Fill all fields"
 
-            if existing:
-                return "Username or Email already exists"
-
-            hashed_password = generate_password_hash(password)
-
-            new_user = User(
+            user = User(
                 username=username,
                 email=email,
-                password=hashed_password
+                password=password
             )
 
-            db.session.add(new_user)
+            db.session.add(user)
             db.session.commit()
 
             return redirect("/login")
@@ -106,22 +98,26 @@ def signup():
 
     return render_template("signup.html")
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "POST":
+        try:
+            username = request.form.get("username")
+            password = request.form.get("password")
 
-        username = request.form["username"]
-        password = request.form["password"]
+            user = User.query.filter_by(
+                username=username,
+                password=password
+            ).first()
 
-        user = User.query.filter_by(username=username).first()
+            if user:
+                session["user"] = user.username
+                return redirect("/")
 
-        if user and check_password_hash(user.password, password):
-            session["user"] = username
-            return redirect("/dashboard")
+            return "Invalid Login"
 
-        return "Invalid Username or Password"
+        except Exception as e:
+            return str(e)
 
     return render_template("login.html")
 
