@@ -121,18 +121,6 @@ background:linear-gradient(135deg,#22c55e,#16a34a);
 box-shadow:0 8px 18px rgba(0,0,0,.25);
 }
 
-.tip-card:nth-child(2){
-background:linear-gradient(135deg,#3b82f6,#2563eb);
-}
-
-.tip-card:nth-child(3){
-background:linear-gradient(135deg,#a855f7,#7e22ce);
-}
-
-.tip-card:nth-child(4){
-background:linear-gradient(135deg,#f59e0b,#d97706);
-}
-
 .meter-section{
 margin-top:30px;
 padding:35px;
@@ -195,6 +183,9 @@ font-size:18px;
 <h1>Resume Dashboard 🔥</h1>
 
 <div class="card"><b>Name:</b> {{ name }}</div>
+<div class="card"><b>Email:</b> {{ email }}</div>
+<div class="card"><b>Phone:</b> {{ phone }}</div>
+<div class="card"><b>Experience:</b> {{ experience }}</div>
 
 <div class="card"><b>Skills:</b> {{ skills | join(', ') }}</div>
 

@@ -211,7 +211,12 @@ def upload():
 
         text = extract_text(filepath)
 
+        # NLP Data
         name = extract_name(text)
+        email = extract_email(text)
+        phone = extract_phone(text)
+        experience = detect_experience(text)
+
         skills = advanced_skills(text)
 
         if jd:
@@ -237,6 +242,9 @@ def upload():
 
         report_data = {
             "name": name,
+            "email": email,
+            "phone": phone,
+            "experience": experience,
             "skills": skills,
             "score": score,
             "missing": missing
@@ -245,9 +253,14 @@ def upload():
         tips = resume_tips(missing)
         summary = ai_summary(name, skills, score, missing)
 
+        # File: web.py
+        # Template File: templates/result.html
         return render_template(
             "result.html",
             name=name,
+            email=email,
+            phone=phone,
+            experience=experience,
             skills=skills,
             score=score,
             tips=tips,
