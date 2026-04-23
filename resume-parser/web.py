@@ -60,7 +60,10 @@ def session_timeout():
 # ---------------- ROUTES ----------------
 @app.route("/")
 def home():
-    return redirect("/signup")
+    try:
+        return render_template("index.html")
+    except Exception as e:
+        return f"HOME ERROR: {str(e)}"
 
 
 @app.route("/signup", methods=["GET", "POST"])
