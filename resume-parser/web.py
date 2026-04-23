@@ -28,6 +28,7 @@ app.secret_key = "ATS Analyzer AI123"
 app.permanent_session_lifetime = timedelta(minutes=10)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 UPLOAD_FOLDER = "uploads"
@@ -43,6 +44,9 @@ class User(db.Model):
     username = db.Column(db.String(100), unique=True)
     email = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(300))
+    
+    with app.app_context():
+       db.create_all()
 
 
 class Report(db.Model):
@@ -68,28 +72,46 @@ def home():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+
     if request.method == "POST":
-        username = request.form["username"]
-        email = request.form["email"]
-        password = request.form["password"]
 
-        user = User(
-            username=username,
-            email=email,
-            password=generate_password_hash(password)
-        )
+        try:
+            username = request.form["username"]
+            email = request.form["email"]
+            password = request.form["password"]
 
-        db.session.add(user)
-        db.session.commit()
+            existing = User.query.filter(
+                (User.username == username) | (User.email == email)
+            ).first()
 
-        return redirect("/login")
+            if existing:
+                return "Username or Email already exists"
+
+            hashed_password = generate_password_hash(password)
+
+            new_user = User(
+                username=username,
+                email=email,
+                password=hashed_password
+            )
+
+            db.session.add(new_user)
+            db.session.commit()
+
+            return redirect("/login")
+
+        except Exception as e:
+            db.session.rollback()
+            return str(e)
 
     return render_template("signup.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         username = request.form["username"]
         password = request.form["password"]
 
@@ -98,6 +120,8 @@ def login():
         if user and check_password_hash(user.password, password):
             session["user"] = username
             return redirect("/dashboard")
+
+        return "Invalid Username or Password"
 
     return render_template("login.html")
 
