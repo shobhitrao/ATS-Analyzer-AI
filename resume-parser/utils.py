@@ -7,16 +7,25 @@ import re
 def extract_name(text):
     lines = text.split("\n")
 
-    for line in lines:
+    for line in lines[:15]:
         line = line.strip()
 
-        if 2 < len(line) < 40:
-            if len(line.split()) <= 4:
-                if "@" not in line:
-                    return line
+        if 3 <= len(line) <= 35:
+            words = line.split()
 
-    return "Name Not Found"
+            if 1 <= len(words) <= 4:
+                low = line.lower()
 
+                banned = [
+                    "resume","cv","email","phone",
+                    "contact","summary","profile"
+                ]
+
+                if not any(x in low for x in banned):
+                    if not any(char.isdigit() for char in line):
+                        return line.title()
+
+    return "Candidate"
 
 # ==========================
 # EMAIL
@@ -39,10 +48,12 @@ def extract_phone(text):
 # ==========================
 def extract_skills(text):
     skills = [
-        "python", "java", "html", "css", "javascript",
-        "sql", "flask", "django", "react", "nodejs",
-        "aws", "git", "github", "mongodb", "mysql",
-        "pandas", "numpy"
+        "python","java","html","css","javascript",
+        "sql","flask","django","react","nodejs",
+        "aws","git","github","mongodb","mysql",
+        "numpy","pandas","excel","power bi",
+        "machine learning","data analysis",
+        "c++","c","php","bootstrap"
     ]
 
     found = []
@@ -50,13 +61,9 @@ def extract_skills(text):
 
     for skill in skills:
         if skill in lower:
-            found.append(skill)
+            found.append(skill.title())
 
     return list(set(found))
-
-
-def advanced_skills(text):
-    return extract_skills(text)
 
 
 # ==========================
@@ -64,56 +71,37 @@ def advanced_skills(text):
 # ==========================
 
 def match_score(resume_text, jd_text):
-    text = resume_text.lower()
-    jd = jd_text.lower()
+    sections = section_scores(resume_text)
 
-    score = 0
+    avg = (
+        sections["Skills"] +
+        sections["Experience"] +
+        sections["Projects"] +
+        sections["Education"]
+    ) / 4
 
-    # 1. Skills Score
-    skills = extract_skills(resume_text)
+    # JD Match Bonus
+    jd_skills = extract_skills(jd_text)
+    resume_skills = extract_skills(resume_text)
 
-    if len(skills) >= 8:
-        score += 30
-    elif len(skills) >= 5:
-        score += 22
-    elif len(skills) >= 3:
-        score += 15
+    matched = 0
+
+    for skill in jd_skills:
+        if skill in resume_skills:
+            matched += 1
+
+    if jd_skills:
+        bonus = int((matched / len(jd_skills)) * 15)
     else:
-        score += 8
+        bonus = 8
 
-    # 2. Experience
-    if "year" in text or "years" in text:
-        score += 20
-    elif "intern" in text:
-        score += 12
-    else:
-        score += 5
+    score = int(avg + bonus)
 
-    # 3. Projects
-    if "project" in text:
-        score += 15
-
-    # 4. Education
-    if "btech" in text or "b.tech" in text or "mca" in text or "bca" in text:
-        score += 15
-
-    # 5. JD Match
-    jd_words = set(jd.split())
-    resume_words = set(text.split())
-
-    if jd_words:
-        matched = len(jd_words & resume_words)
-        score += int((matched / len(jd_words)) * 15)
-
-    # 6. Resume Length
-    if len(resume_text) > 500:
-        score += 5
-
-    # Final Limit
     if score > 100:
         score = 100
 
     return score
+
 
 
 # ==========================
@@ -134,11 +122,18 @@ def detect_experience(text):
 # ==========================
 # MISSING SKILLS
 # ==========================
-def missing_skills(resume_text, jd_text):
-    resume = extract_skills(resume_text)
-    jd = extract_skills(jd_text)
 
-    return [skill for skill in jd if skill not in resume]
+def missing_skills(resume_text, jd_text):
+    resume_skills = [x.lower() for x in extract_skills(resume_text)]
+    jd_skills = [x.lower() for x in extract_skills(jd_text)]
+
+    missing = []
+
+    for skill in jd_skills:
+        if skill not in resume_skills:
+            missing.append(skill.title())
+
+    return missing
 
 
 # ==========================
@@ -179,47 +174,53 @@ def ai_summary(name, skills, score, missing):
 def section_scores(text):
     t = text.lower()
 
-    skills_found = len(extract_skills(text))
+    # Skills
+    skill_count = len(extract_skills(text))
 
-    if skills_found >= 8:
-        skills_score = 95
-    elif skills_found >= 6:
-        skills_score = 85
-    elif skills_found >= 4:
-        skills_score = 70
-    elif skills_found >= 2:
-        skills_score = 55
+    if skill_count >= 8:
+        skills = 90
+    elif skill_count >= 6:
+        skills = 80
+    elif skill_count >= 4:
+        skills = 70
     else:
-        skills_score = 35
+        skills = 55
 
+    # Experience
     if "5 years" in t or "4 years" in t or "3 years" in t:
-        exp_score = 95
+        exp = 88
     elif "2 years" in t or "1 year" in t:
-        exp_score = 80
+        exp = 78
     elif "intern" in t:
-        exp_score = 65
+        exp = 68
     elif "fresher" in t:
-        exp_score = 55
+        exp = 60
     else:
-        exp_score = 40
+        exp = 55
 
+    # Projects
     if "project" in t and "github" in t:
-        project_score = 95
+        proj = 90
     elif "project" in t:
-        project_score = 80
+        proj = 78
+    elif "portfolio" in t:
+        proj = 70
     else:
-        project_score = 35
+        proj = 58
 
+    # Education
     if "m.tech" in t or "mba" in t or "mca" in t:
-        edu_score = 92
-    elif "b.tech" in t or "btech" in t or "bca" in t:
-        edu_score = 82
+        edu = 88
+    elif "b.tech" in t or "btech" in t or "bca" in t or "b.sc" in t:
+        edu = 80
+    elif "12th" in t:
+        edu = 65
     else:
-        edu_score = 35
+        edu = 55
 
     return {
-        "Skills": skills_score,
-        "Experience": exp_score,
-        "Projects": project_score,
-        "Education": edu_score
+        "Skills": skills,
+        "Experience": exp,
+        "Projects": proj,
+        "Education": edu
     }
