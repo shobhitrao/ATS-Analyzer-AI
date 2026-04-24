@@ -4,26 +4,23 @@ import re
 # ==========================
 # NAME
 # ==========================
+import re
+
 def extract_name(text):
     lines = text.split("\n")
 
     for line in lines[:15]:
         line = line.strip()
 
-        if 3 <= len(line) <= 35:
-            words = line.split()
-
-            if 1 <= len(words) <= 4:
-                low = line.lower()
-
-                banned = [
-                    "resume","cv","email","phone",
-                    "contact","summary","profile"
-                ]
-
-                if not any(x in low for x in banned):
-                    if not any(char.isdigit() for char in line):
-                        return line.title()
+        if (
+            len(line.split()) >= 2 and
+            len(line.split()) <= 3 and
+            not any(x in line.lower() for x in [
+                "resume", "cv", "email", "phone",
+                "developer", "engineer", "profile"
+            ])
+        ):
+            return line.title()
 
     return "Candidate"
 
