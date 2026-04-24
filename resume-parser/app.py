@@ -1,387 +1,327 @@
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from flask import Flask, render_template, request, redirect, session, send_file
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import random
+
 from parser import extract_text
+from utils import (
+    extract_name,
+    extract_email,
+    extract_phone,
+    extract_skills,
+    detect_experience,
+    missing_skills,
+    resume_tips,
+    ai_summary,
+    section_scores,
+    match_score
+)
+
+app = Flask(__name__)
+app.secret_key = "ats_secret_key_2026"
+
+# =========================
+# DATABASE
+# =========================
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///ats_analyzer.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# ===============================
-# NLP Model Load
-# ===============================
+db = SQLAlchemy(app)
 
-def jd_suggestions(jd):
-    tips = []
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
-    jd_lower = jd.lower().strip()
+# =========================
+# MODELS
+# =========================
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(300), nullable=False)
 
-    if not jd_lower:
-        tips.append("Add a Job Description for better matching.")
-        return tips
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120))
+    skills = db.Column(db.Text)
+    score = db.Column(db.Integer)
 
-    if len(jd_lower) < 80:
-        tips.append("Job Description is too short. Add more details.")
 
-    if "experience" not in jd_lower:
-        tips.append("Mention required experience years.")
+with app.app_context():
+    db.create_all()
 
-    if "responsibilities" not in jd_lower:
-        tips.append("Add responsibilities section.")
 
-    if "skills" not in jd_lower:
-        tips.append("Mention required technical skills clearly.")
+# =========================
+# LOGIN CHECK
+# =========================
+def is_logged_in():
+    return "user" in session
 
-    if "communication" not in jd_lower:
-        tips.append("Add soft skills like communication/teamwork.")
 
-    if not tips:
-        tips.append("Excellent Job Description.")
+# =========================
+# HOME
+# =========================
+@app.route("/")
+def home():
+    if not is_logged_in():
+        return redirect("/login")
+    return render_template("index.html")
 
-    return tips
+
+# =========================
+# SIGNUP
+# =========================
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form["username"].strip()
+        email = request.form["email"].strip()
+        password = request.form["password"]
+
+        user = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+
+        if user:
+            return "Username or Email already exists"
+
+        hashed = generate_password_hash(password)
+
+        new_user = User(
+            username=username,
+            email=email,
+            password=hashed
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return redirect("/login")
+
+    return render_template("signup.html")
+
+
+# =========================
+# LOGIN
+# =========================
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            session["user"] = username
+            return redirect("/")
+
+        return "Invalid Login"
+
+    return render_template("login.html")
+
+
+# =========================
+# LOGOUT
+# =========================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
+# =========================
+# UPLOAD + ANALYZE
+# =========================
+@app.route("/upload", methods=["POST"])
+def upload():
+    if not is_logged_in():
+        return redirect("/login")
+
+    file = request.files["resume"]
+    jd = request.form["jd"]
+
+    if not file or file.filename == "":
+        return "No file selected"
+
+    filename = secure_filename(file.filename)
+    path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(path)
+
+    text = extract_text(path)
+
+    name = extract_name(text)
+    email = extract_email(text)
+    phone = extract_phone(text)
+    skills = extract_skills(text)
+    experience = detect_experience(text)
+
+    missing = missing_skills(text, jd)
+    score = match_score(text, jd)
 
-# ===============================
-# 🧠 Skills Extract (NLP Based)
-# ===============================
-def extract_skills(text):
+    tips = resume_tips(missing)
+    summary = ai_summary(name, skills, score, missing)
+    sections = section_scores(text)
+
+    report = Report(
+        username=session["user"],
+        skills=", ".join(skills),
+        score=score
+    )
+
+    db.session.add(report)
+    db.session.commit()
+
+    return render_template(
+        "result.html",
+        name=name,
+        email=email,
+        phone=phone,
+        experience=experience,
+        skills=skills,
+        missing=missing,
+        score=score,
+        tips=tips,
+        summary=summary,
+        sections=sections,
+        jd_skills=extract_skills(jd)
+    )
 
-    skills_list = [
-        "python", "java", "javascript", "c++", "react",
-        "node", "express", "html", "css",
-        "sql", "mongodb", "mysql",
-        "git", "github", "pandas", "numpy",
-        "aws", "docker", "kubernetes"
-    ]
+
+# =========================
+# HISTORY
+# =========================
+@app.route("/history")
+def history():
+    if not is_logged_in():
+        return redirect("/login")
 
-    found = []
+    reports = Report.query.filter_by(username=session["user"]).all()
+    return render_template("history.html", reports=reports)
 
-    words = text.lower().split()
+
+# =========================
+# DELETE REPORT
+# =========================
+@app.route("/delete_report/<int:id>")
+def delete_report(id):
+    if not is_logged_in():
+        return redirect("/login")
 
-    for word in words:
-        if word in skills_list:
-            found.append(word)
+    report = Report.query.get(id)
 
-    return list(set(found))
+    if report:
+        db.session.delete(report)
+        db.session.commit()
 
-def extract_experience(text):
-    if "fresher" in text.lower():
-        return "Fresher"
+    return redirect("/history")
 
-    exp = re.findall(r'(\d+)\s+years?', text.lower())
 
-    if exp:
-        return exp[0] + " Years"
+# =========================
+# FORGOT PASSWORD
+# =========================
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
 
-    return "Not Found"
+        user = User.query.filter_by(
+            username=username,
+            email=email
+        ).first()
 
-def extract_education(text):
-    education_keywords = [
-        "b.tech", "btech", "b.e", "m.tech",
-        "mba", "bca", "mca", "b.sc", "bcom"
-    ]
+        if user:
+            otp = str(random.randint(1000, 9999))
+            session["otp"] = otp
+            session["reset_user"] = username
+            return redirect("/verify_otp")
 
-    for edu in education_keywords:
-        if edu in text.lower():
-            return edu.upper()
+        return "User not found"
 
-    return "Not Found"
+    return render_template("forgot_password.html")
 
 
-# ===============================
-# 👤 Name Extract (NLP Based)
-# ===============================
+# =========================
+# VERIFY OTP
+# =========================
+@app.route("/verify_otp", methods=["GET", "POST"])
+def verify_otp():
+    if request.method == "POST":
+        otp = request.form["otp"]
 
-def extract_name(text):
-    lines = text.split("\n")
+        if otp == session.get("otp"):
+            return redirect("/reset_password")
 
-    for line in lines:
-        line = line.strip()
+        return "Invalid OTP"
 
-        if len(line.split()) <= 3:
-            if "email" not in line.lower():
-                return line
+    return render_template("verify_otp.html")
 
-    return "Not Found"
 
-    # -----------------------
-    # Final Score
-    # -----------------------
-    final_score = similarity_part + skills_part + bonus
+# =========================
+# RESET PASSWORD
+# =========================
+@app.route("/reset_password", methods=["GET", "POST"])
+def reset_password():
+    if request.method == "POST":
+        new_password = request.form["password"]
 
-    if final_score > 100:
-        final_score = 100
+        username = session.get("reset_user")
+        user = User.query.filter_by(username=username).first()
 
-    return round(final_score, 2)
+        if user:
+            user.password = generate_password_hash(new_password)
+            db.session.commit()
 
+        session.pop("otp", None)
+        session.pop("reset_user", None)
 
-def missing_skills(resume_skills, jd_skills):
-    missing = []
+        return redirect("/login")
 
-    for skill in jd_skills:
-        if skill.lower() not in [s.lower() for s in resume_skills]:
-            missing.append(skill)
+    return render_template("reset_password.html")
 
-    return missing
 
-def resume_tips(missing):
-    tips = []
+# =========================
+# CHANGE PASSWORD
+# =========================
+@app.route("/change_password", methods=["GET", "POST"])
+def change_password():
+    if not is_logged_in():
+        return redirect("/login")
 
-    if missing:
-        tips.append("Add missing skills in projects or skills section.")
+    if request.method == "POST":
+        old = request.form["old_password"]
+        new = request.form["new_password"]
 
-    if "sql" in missing:
-        tips.append("Learn SQL basics and add to resume.")
+        user = User.query.filter_by(username=session["user"]).first()
 
-    if "aws" in missing:
-        tips.append("Add cloud basics / AWS certification.")
+        if user and check_password_hash(user.password, old):
+            user.password = generate_password_hash(new)
+            db.session.commit()
+            return redirect("/")
 
-    if "git" in missing:
-        tips.append("Mention Git / GitHub usage.")
+        return "Wrong old password"
 
-    if "react" in missing:
-        tips.append("Frontend projects with React can help.")
+    return render_template("change_password.html")
 
-    if not tips:
-        tips.append("Great resume! Keep projects updated.")
 
-    return tips
+# =========================
+# DOWNLOAD REPORT
+# =========================
+@app.route("/download")
+def download():
+    if os.path.exists("report.pdf"):
+        return send_file("report.pdf", as_attachment=True)
 
-def section_scores(skills, text):
+    return "PDF not found"
 
-    scores = {}
 
-    # Skills
-    scores["Skills"] = min(len(skills) * 10, 100)
-
-    # Experience
-    if "experience" in text.lower() or "internship" in text.lower():
-        scores["Experience"] = 80
-    else:
-        scores["Experience"] = 40
-
-    # Education
-    if "b.tech" in text.lower() or "bca" in text.lower() or "mca" in text.lower():
-        scores["Education"] = 85
-    else:
-        scores["Education"] = 50
-
-    # Projects
-    if "project" in text.lower():
-        scores["Projects"] = 90
-    else:
-        scores["Projects"] = 45
-
-    # Formatting
-    if len(text) > 700:
-        scores["Formatting"] = 75
-    else:
-        scores["Formatting"] = 55
-
-    return scores
-
-def ai_summary(name, skills, score, missing):
-
-    summary = f"{name} has "
-
-    if len(skills) >= 5:
-        summary += "a strong technical skill set"
-    elif len(skills) >= 3:
-        summary += "a decent technical foundation"
-    else:
-        summary += "an improving technical profile"
-
-    summary += f" with ATS score of {score}%. "
-
-    if missing:
-        summary += "Adding " + ", ".join(missing) + " can improve hiring chances. "
-
-    if "python" in [s.lower() for s in skills]:
-        summary += "Suitable for Python based roles."
-    elif "react" in [s.lower() for s in skills]:
-        summary += "Suitable for frontend roles."
-    else:
-        summary += "Suitable for entry-level software roles."
-
-    return summary
-
-def suggest_role(skills):
-    skills = [s.lower() for s in skills]
-
-    if "react" in skills and "javascript" in skills:
-        return "Frontend Developer"
-
-    elif "python" in skills and "sql" in skills:
-        return "Python Developer"
-
-    elif "python" in skills and "pandas" in skills:
-        return "Data Analyst"
-
-    return "Software Developer"
-
-
-def resume_score(skills, education, experience):
-    score = 0
-
-    # Skills Score
-    score += len(skills) * 5
-
-    # Education Score
-    if education != "Not Found":
-        score += 20
-
-    # Experience Score
-    if experience == "Fresher":
-        score += 10
-    else:
-        score += 20
-
-    # Max limit
-    if score > 100:
-        score = 100
-
-    return score
-
-def ats_score(skills, education, experience, text):
-
-    score = 0
-
-    # Skills Score
-    if len(skills) >= 6:
-        score += 40
-    elif len(skills) >= 4:
-        score += 30
-    elif len(skills) >= 2:
-        score += 20
-
-    # Education Score
-    if education != "Not Found":
-        score += 20
-
-    # Experience Score
-    if experience == "Fresher":
-        score += 10
-    elif "Years" in experience:
-        score += 20
-
-    # Keywords Score
-    keywords = ["project", "internship", "developer", "python"]
-    
-    for word in keywords:
-        if word in text.lower():
-            score += 5
-
-    if score > 100:
-        score = 100
-
-    return score
-
-def better_suggestions(skills, education, experience, missing):
-
-    tips = []
-
-    if len(skills) < 5:
-        tips.append("Add more technical skills.")
-
-    if education == "Not Found":
-        tips.append("Add education details clearly.")
-
-    if experience == "Not Found":
-        tips.append("Mention internships or experience.")
-
-    if "sql" in missing:
-        tips.append("Learn SQL and add projects.")
-
-    if "aws" in missing:
-        tips.append("Learn cloud basics / AWS.")
-
-    if not tips:
-        tips.append("Resume looks strong. Keep improving projects.")
-
-    return tips
-
-
-def role_recommendation(skills):
-
-    if "react" in skills or "html" in skills:
-        return "Frontend Developer"
-
-    elif "python" in skills and "sql" in skills:
-        return "Python Developer"
-
-    elif "aws" in skills:
-        return "Cloud Engineer"
-
-    else:
-        return "Software Developer"
-
-# ===============================
-# 📄 File Path
-# ===============================
-file_path = "uploads/resume.pdf"
-
-
-# ===============================
-# 📄 Extract Resume Text
-# ===============================
-text = extract_text(file_path)
-
-job_description = """
-Looking for Python Developer with React, SQL, Git,
-HTML, CSS knowledge. Fresher can apply.
-"""
-jd_skills = ["python", "react", "sql", "git", "html", "css", "aws"]
-
-experience = extract_experience(text)
-education = extract_education(text)
-name = extract_name(text)
-skills = extract_skills(text)
-
-score = ats_score(skills, education, experience, text)
-
-final_score = resume_score(skills, education, experience)
-missing = missing_skills(skills, jd_skills)
-tips = better_suggestions(skills, education, experience, missing)
-role = role_recommendation(skills)
-
-print("\n===== NLP DATA =====\n")
-print("Name:", name)
-print("Skills:", skills)
-
-# ===============================
-# 📧 Email Extract
-# ===============================
-email = re.findall(r'\S+@\S+', text)
-
-
-# ===============================
-# 📱 Phone Extract
-# ===============================
-phone = re.findall(r'\+91[-\s]?\d{10}', text)
-
-
-# ===============================
-# 🔗 LinkedIn Extract
-# ===============================
-linkedin = re.findall(r'linkedin\.com/\S+', text)
-
-
-# ===============================
-# 🔗 GitHub Extract
-# ===============================
-github = re.findall(r'github\.com/\S+', text)
-
-
-# ===============================
-# 🎯 Final Output
-# ===============================
-print("\n===== EXTRACTED DATA =====\n")
-
-print("Name:", name)
-print("Email:", email[0] if email else "")
-print("Phone:", phone[0] if phone else "")
-print("LinkedIn:", linkedin[0] if linkedin else "")
-print("GitHub:", github[0] if github else "")
-print("Skills:", skills)
-print("Experience:", experience)
-print("Education:", education)
-print("Match Score:", score, "%")
-print("Missing Skills:", missing)
-print("Resume Tips:", tips)
-print("Best Job Role:", role)
-print("Resume Score:", final_score, "/100")
+# =========================
+# RUN
+# =========================
+if __name__ == "__main__":
+    app.run(debug=True)
