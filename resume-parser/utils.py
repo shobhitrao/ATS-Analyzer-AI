@@ -51,3 +51,14 @@ def match_score(resume_text, jd_text):
     score = int((len(matched) / len(jd_words)) * 100)
 
     return score
+
+def detect_experience(text):
+    text = text.lower()
+
+    if "year" in text or "years" in text:
+        return "Experienced"
+
+    if "intern" in text or "fresher" in text:
+        return "Fresher"
+
+    return "Not Found"
