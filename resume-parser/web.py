@@ -1,260 +1,83 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, render_template, request, redirect, session, send_file
-from reportlab.pdfgen import canvas
-import os
-import time
+import re
 
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
-
-from parser import extract_text
-
-from utils import (
-    extract_name,
-    extract_skills,
-    advanced_skills,
-    match_score,
-    detect_experience,
-    extract_email,
-    extract_phone,
-    missing_skills,
-    resume_tips,
-    ai_summary,
-    section_scores
-)
-
-app = Flask(__name__)
-app.secret_key = "ATS Analyzer AI123"
-app.permanent_session_lifetime = timedelta(minutes=10)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-db = SQLAlchemy(app)
-
-UPLOAD_FOLDER = "uploads"
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-report_data = {}
-
-# ---------------- MODELS ----------------
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True)
-    email = db.Column(db.String(150), unique=True)
-    password = db.Column(db.String(300))
+def extract_name(text):
+    lines = text.split("\n")
+    for line in lines:
+        line = line.strip()
+        if len(line) > 2 and len(line.split()) <= 4:
+            return line
+    return "Name Not Found"
 
 
-class Report(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100))
-    score = db.Column(db.String(20))
-    skills = db.Column(db.String(500))
+def extract_email(text):
+    match = re.search(r'[\w\.-]+@[\w\.-]+', text)
+    return match.group(0) if match else "Not Found"
 
 
-@app.before_request
-def session_timeout():
-    session.permanent = True
+def extract_phone(text):
+    match = re.search(r'\+?\d[\d\s\-]{8,15}', text)
+    return match.group(0) if match else "Not Found"
 
 
-# ---------------- ROUTES ----------------
+def extract_skills(text):
+    skills = [
+        "python","java","html","css","javascript",
+        "sql","flask","django","react","nodejs","aws","git"
+    ]
+    found = []
+    lower = text.lower()
 
-@app.route("/")
-def home():
-    try:
-        return render_template("index.html")
-    except Exception as e:
-        return f"HOME ERROR: {str(e)}"
+    for skill in skills:
+        if skill in lower:
+            found.append(skill)
 
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    try:
-        if request.method == "POST":
-            username = request.form.get("username")
-            email = request.form.get("email")
-            password = request.form.get("password")
-
-            old_user = User.query.filter_by(email=email).first()
-
-            if old_user:
-                return "Email already registered"
-
-            new_user = User(
-                username=username,
-                email=email,
-                password=password
-            )
-
-            db.session.add(new_user)
-            db.session.commit()
-
-            return redirect("/login")
-
-        return render_template("signup.html")
-
-    except Exception as e:
-        return f"Signup Error: {str(e)}"
+    return found
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    try:
-        if request.method == "POST":
-            username = request.form.get("username")
-            password = request.form.get("password")
-
-            user = User.query.filter_by(
-                username=username,
-                password=password
-            ).first()
-
-            if user:
-                session["user"] = user.username
-                return redirect("/dashboard")
-
-            return "Invalid Login"
-
-        return render_template("login.html")
-
-    except Exception as e:
-        return f"Login Error: {str(e)}"
+def advanced_skills(text):
+    return extract_skills(text)
 
 
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect("/login")
+def match_score(resume_text, jd_text):
+    rw = set(resume_text.lower().split())
+    jw = set(jd_text.lower().split())
 
-    return render_template("index.html")
+    if not jw:
+        return 0
 
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
+    return int(len(rw & jw) / len(jw) * 100)
 
 
-@app.route("/history")
-def history():
-    if "user" not in session:
-        return redirect("/login")
+def detect_experience(text):
+    t = text.lower()
 
-    reports = Report.query.filter_by(username=session["user"]).all()
-    return render_template("history.html", reports=reports)
+    if "years" in t or "year" in t:
+        return "Experienced"
+
+    if "intern" in t or "fresher" in t:
+        return "Fresher"
+
+    return "Not Found"
 
 
-# ---------------- UPLOAD ----------------
+def missing_skills(skills, jd_skills):
+    return [x for x in jd_skills if x not in skills]
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    global report_data
 
-    if "user" not in session:
-        return redirect("/login")
+def resume_tips(missing):
+    if missing:
+        return [f"Add {x}" for x in missing]
+    return ["Resume looks good"]
 
-    file = request.files["resume"]
-    jd = request.form.get("jd", "").strip()
 
-    if not file:
-        return "No File Selected"
+def ai_summary(name, skills, score, missing):
+    return f"{name} has {len(skills)} skills with ATS score {score}%."
 
-    filename = str(int(time.time())) + "_" + file.filename
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
 
-    text = extract_text(filepath)
-
-    name = extract_name(text)
-
-    try:
-        email = extract_email(text)
-    except:
-        email = "Not Found"
-
-    try:
-        phone = extract_phone(text)
-    except:
-        phone = "Not Found"
-
-    try:
-        experience = detect_experience(text)
-    except:
-        experience = "0 Years"
-
-    skills = advanced_skills(text)
-
-    if jd:
-        jd_skills = extract_skills(jd)
-    else:
-        jd = """
-        Looking for Python Developer with React, SQL,
-        HTML, CSS, Git, AWS knowledge.
-        """
-        jd_skills = extract_skills(jd)
-
-    score = match_score(text, jd)
-    missing = missing_skills(skills, jd_skills)
-
-    new_report = Report(
-        username=session["user"],
-        score=str(score),
-        skills=", ".join(skills)
-    )
-
-    db.session.add(new_report)
-    db.session.commit()
-
-    report_data = {
-        "name": name,
-        "skills": skills,
-        "score": score,
-        "missing": missing
+def section_scores(skills, text):
+    return {
+        "Skills": min(len(skills) * 10, 100),
+        "Experience": 70,
+        "Projects": 75,
+        "Education": 80
     }
-
-    tips = resume_tips(missing)
-    summary = ai_summary(name, skills, score, missing)
-
-    return render_template(
-        "result.html",
-        name=name,
-        email=email,
-        phone=phone,
-        experience=experience,
-        skills=skills,
-        score=score,
-        tips=tips,
-        missing=missing,
-        summary=summary,
-        jd_skills=jd_skills,
-        sections=section_scores(skills, text)
-    )
-
-
-@app.route("/download")
-def download():
-    file_path = "report.pdf"
-
-    c = canvas.Canvas(file_path)
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(160, 800, "ATS Analyzer AI Report")
-
-    c.setFont("Helvetica", 12)
-    c.drawString(50, 750, "Name: " + str(report_data.get("name", "")))
-    c.drawString(50, 720, "Skills: " + ", ".join(report_data.get("skills", [])))
-    c.drawString(50, 690, "Score: " + str(report_data.get("score", 0)) + "%")
-    c.drawString(50, 660, "Missing: " + ", ".join(report_data.get("missing", [])))
-
-    c.save()
-
-    return send_file(file_path, as_attachment=True)
-
-
-with app.app_context():
-    db.create_all()
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
