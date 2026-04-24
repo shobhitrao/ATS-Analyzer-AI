@@ -1,5 +1,6 @@
 import re
 
+
 def extract_name(text):
     lines = text.split("\n")
     for line in lines:
@@ -22,9 +23,7 @@ def extract_phone(text):
 def extract_skills(text):
     skills = [
         "python", "java", "html", "css", "javascript",
-        "sql", "flask", "django", "react", "nodejs",
-        "c++", "bootstrap", "mongodb", "mysql",
-        "power bi", "excel"
+        "sql", "flask", "django", "react", "nodejs"
     ]
 
     found = []
@@ -40,6 +39,7 @@ def extract_skills(text):
 def advanced_skills(text):
     return extract_skills(text)
 
+
 def match_score(resume_text, jd_text):
     resume_words = set(resume_text.lower().split())
     jd_words = set(jd_text.lower().split())
@@ -48,9 +48,8 @@ def match_score(resume_text, jd_text):
         return 0
 
     matched = resume_words.intersection(jd_words)
-    score = int((len(matched) / len(jd_words)) * 100)
+    return int((len(matched) / len(jd_words)) * 100)
 
-    return score
 
 def detect_experience(text):
     text = text.lower()
@@ -62,3 +61,38 @@ def detect_experience(text):
         return "Fresher"
 
     return "Not Found"
+
+
+def missing_skills(resume_text, jd_text):
+    resume_skills = extract_skills(resume_text)
+    jd_skills = extract_skills(jd_text)
+
+    missing = []
+
+    for skill in jd_skills:
+        if skill not in resume_skills:
+            missing.append(skill)
+
+    return missing
+
+
+def resume_tips(text):
+    return [
+        "Add more technical skills",
+        "Improve formatting",
+        "Add projects section",
+        "Use action words"
+    ]
+
+
+def ai_summary(text):
+    return "Good resume with decent skills and structure."
+
+
+def section_scores(text):
+    return {
+        "Skills": 80,
+        "Experience": 70,
+        "Projects": 75,
+        "Education": 85
+    }
