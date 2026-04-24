@@ -21,8 +21,10 @@ def extract_phone(text):
 
 def extract_skills(text):
     skills = [
-        "python","java","html","css","javascript",
-        "sql","flask","django","react","nodejs"
+        "python", "java", "html", "css", "javascript",
+        "sql", "flask", "django", "react", "nodejs",
+        "c++", "bootstrap", "mongodb", "mysql",
+        "power bi", "excel"
     ]
 
     found = []
@@ -33,3 +35,7 @@ def extract_skills(text):
             found.append(skill)
 
     return found
+
+
+def advanced_skills(text):
+    return extract_skills(text)
