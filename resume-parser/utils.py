@@ -39,3 +39,15 @@ def extract_skills(text):
 
 def advanced_skills(text):
     return extract_skills(text)
+
+def match_score(resume_text, jd_text):
+    resume_words = set(resume_text.lower().split())
+    jd_words = set(jd_text.lower().split())
+
+    if len(jd_words) == 0:
+        return 0
+
+    matched = resume_words.intersection(jd_words)
+    score = int((len(matched) / len(jd_words)) * 100)
+
+    return score
