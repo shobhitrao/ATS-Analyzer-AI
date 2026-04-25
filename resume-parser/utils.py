@@ -9,20 +9,25 @@ import re
 def extract_name(text):
     lines = text.split("\n")
 
-    for line in lines[:15]:
+    for line in lines[:12]:
         line = line.strip()
 
-        if (
-            len(line.split()) >= 2 and
-            len(line.split()) <= 3 and
-            not any(x in line.lower() for x in [
-                "resume", "cv", "email", "phone",
-                "developer", "engineer", "profile"
-            ])
-        ):
-            return line.title()
+        # skip empty lines
+        if not line:
+            continue
 
-    return "Candidate"
+        # only alphabetic names like Rahul Sharma
+        if re.match(r'^[A-Za-z ]+$', line):
+            words = line.split()
+
+            if 2 <= len(words) <= 3:
+                if line.lower() not in [
+                    "resume", "curriculum vitae", "profile",
+                    "python developer", "software engineer"
+                ]:
+                    return line.title()
+
+    return "Name Not Found"
 
 # ==========================
 # EMAIL
