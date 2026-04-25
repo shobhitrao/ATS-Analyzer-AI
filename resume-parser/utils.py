@@ -4,28 +4,36 @@ import re
 # ==========================
 # NAME
 # ==========================
-import re
 
 def extract_name(text):
-    lines = text.split("\n")
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-    for line in lines[:12]:
-        line = line.strip()
+    # 1. Email ke paas naam dhundo
+    for i, line in enumerate(lines):
+        if "@" in line:
+            for j in range(max(0, i-3), i):
+                candidate = lines[j]
 
-        # skip empty lines
-        if not line:
-            continue
+                if re.match(r'^[A-Za-z ]+$', candidate):
+                    words = candidate.split()
 
-        # only alphabetic names like Rahul Sharma
+                    if 2 <= len(words) <= 3:
+                        return candidate.title()
+
+    # 2. Top lines me dhundo
+    for line in lines[:10]:
         if re.match(r'^[A-Za-z ]+$', line):
             words = line.split()
 
             if 2 <= len(words) <= 3:
-                if line.lower() not in [
-                    "resume", "curriculum vitae", "profile",
-                    "python developer", "software engineer"
-                ]:
-                    return line.title()
+                return line.title()
+
+    # 3. Email username se name banao
+    email = re.search(r'[\w\.-]+@[\w\.-]+', text)
+    if email:
+        username = email.group(0).split("@")[0]
+        username = username.replace(".", " ").replace("_", " ")
+        return username.title()
 
     return "Name Not Found"
 
