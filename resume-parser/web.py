@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session
 from flask_sqlalchemy import SQLAlchemy
 import os
 import time
+from datetime import timedelta
 
 from parser import extract_text
 from utils import (
@@ -19,6 +20,7 @@ from utils import (
 
 app = Flask(__name__)
 app.secret_key = "ats_secret_key"
+app.permanent_session_lifetime = timedelta(minutes=2)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///newdb.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -57,6 +59,7 @@ def signup():
 
 @app.route("/dashboard")
 def dashboard():
+    session.permanent = True
     session["user"] = "demo_user"
     return render_template("index.html")
 
