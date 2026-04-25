@@ -82,14 +82,27 @@ def upload():
 
     skills = advanced_skills(text)
 
-    jd = """
-    Looking for Python Developer with
-    React, SQL, HTML, CSS, Git,
-    AWS, Django, Docker,
-    Machine Learning
-    """
+    # USER JD INPUT
+    jd = request.form.get("jd", "").strip()
+
+    # Default JD if blank
+    if not jd:
+        jd = """
+        Looking for Python Developer with
+        React, SQL, HTML, CSS, Git,
+        AWS, Django, Docker,
+        Machine Learning
+        """
 
     jd_skills = extract_skills(jd)
+
+    # Force fallback if extractor empty
+    if not jd_skills:
+        jd_skills = [
+            "python", "react", "sql", "html",
+            "css", "git", "aws", "django",
+            "docker"
+        ]
 
     score = match_score(text, jd)
     missing = missing_skills(skills, jd_skills)
