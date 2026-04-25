@@ -6,47 +6,55 @@ import re
 # ==========================
 
 
+import re
+
 def extract_name(text):
     lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-    blocked = [
-        "resume", "curriculum vitae", "profile", "summary",
-        "technical skills", "work experience", "projects",
-        "education", "certifications", "email", "phone",
-        "linkedin", "github"
-    ]
+    blocked_words = {
+        "email", "phone", "linkedin", "github", "address",
+        "summary", "profile", "skills", "experience",
+        "education", "projects", "certifications",
+        "objective", "resume", "cv"
+    }
 
-    # 1. First 8 lines me heading name dhundo (ALL CAPS bhi chalega)
-    for line in lines[:8]:
+    # top lines me search
+    for line in lines[:15]:
+        low = line.lower()
+
+        # skip unwanted lines
+        if any(word in low for word in blocked_words):
+            continue
+
+        if "@" in line:
+            continue
+
+        if re.search(r'\d', line):
+            continue
+
+        # remove symbols
         clean = re.sub(r'[^A-Za-z ]', '', line).strip()
-
-        if not clean:
-            continue
-
-        low = clean.lower()
-
-        if any(word in low for word in blocked):
-            continue
-
         words = clean.split()
 
-        if 2 <= len(words) <= 3:
-            return " ".join(w.capitalize() for w in words)
+        # 2 to 4 words likely person name
+        if 2 <= len(words) <= 4:
+            good = True
+            for w in words:
+                if len(w) < 2:
+                    good = False
 
-    # 2. Email ke upar lines check karo
-    for i, line in enumerate(lines):
-        if "@" in line:
-            for j in range(max(0, i-3), i):
-                clean = re.sub(r'[^A-Za-z ]', '', lines[j]).strip()
-                words = clean.split()
-                if 2 <= len(words) <= 3:
-                    return " ".join(w.capitalize() for w in words)
+            if good:
+                return " ".join(x.capitalize() for x in words)
 
-    # 3. Fallback email username
-    m = re.search(r'([\w\.-]+)@', text)
-    if m:
-        user = m.group(1).replace(".", " ").replace("_", " ")
-        return " ".join(w.capitalize() for w in user.split())
+    # fallback from email
+    email = re.search(r'([\w\.-]+)@', text)
+    if email:
+        username = email.group(1)
+        username = username.replace(".", " ").replace("_", " ")
+        words = username.split()
+
+        if 1 <= len(words) <= 3:
+            return " ".join(x.capitalize() for x in words)
 
     return "Candidate"
 
