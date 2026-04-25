@@ -85,24 +85,37 @@ def upload():
     # USER JD INPUT
     jd = request.form.get("jd", "").strip()
 
-    # Default JD if blank
+    # DEFAULT JD
     if not jd:
-        jd = """
-        Looking for Python Developer with
-        React, SQL, HTML, CSS, Git,
-        AWS, Django, Docker,
-        Machine Learning
-        """
-
-    jd_skills = extract_skills(jd)
-
-    # Force fallback if extractor empty
-    if not jd_skills:
         jd_skills = [
-            "python", "react", "sql", "html",
-            "css", "git", "aws", "django",
-            "docker"
+            "Python",
+            "React",
+            "SQL",
+            "HTML",
+            "CSS",
+            "Git",
+            "AWS",
+            "Django",
+            "Docker",
+            "Machine Learning"
         ]
+        jd = " ".join(jd_skills)
+
+    else:
+        jd_skills = extract_skills(jd)
+
+        if not jd_skills:
+            jd_skills = [
+                "Python",
+                "React",
+                "SQL",
+                "HTML",
+                "CSS",
+                "Git",
+                "AWS",
+                "Django",
+                "Docker"
+            ]
 
     score = match_score(text, jd)
     missing = missing_skills(skills, jd_skills)
