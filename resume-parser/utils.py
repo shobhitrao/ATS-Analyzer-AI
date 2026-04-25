@@ -75,39 +75,37 @@ def extract_skills(text):
 # ATS SCORE
 # ==========================
 
+
 def match_score(resume_text, jd_text):
-    sections = section_scores(resume_text)
+    resume_text = resume_text.lower()
+    jd_text = jd_text.lower()
 
-    avg = (
-        sections["Skills"] +
-        sections["Experience"] +
-        sections["Projects"] +
-        sections["Education"]
-    ) / 4
+    skills = [
+        "python", "java", "html", "css", "javascript",
+        "sql", "mysql", "flask", "django", "react",
+        "git", "github", "aws", "docker",
+        "machine learning", "pandas", "numpy", "c", "c++"
+    ]
 
-    # JD Match Bonus
-    jd_skills = extract_skills(jd_text)
-    resume_skills = extract_skills(resume_text)
-
+    jd_skills = []
     matched = 0
 
+    for skill in skills:
+        if re.search(r'\b' + re.escape(skill) + r'\b', jd_text):
+            jd_skills.append(skill)
+
+    total = len(jd_skills)
+
+    if total == 0:
+        return 50
+
     for skill in jd_skills:
-        if skill in resume_skills:
+        if re.search(r'\b' + re.escape(skill) + r'\b', resume_text):
             matched += 1
 
-    if jd_skills:
-        bonus = int((matched / len(jd_skills)) * 15)
-    else:
-        bonus = 8
-
-    score = int(avg + bonus)
-
-    if score > 100:
-        score = 100
+    score = int((matched / total) * 100)
 
     return score
-
-
 
 # ==========================
 # EXPERIENCE
