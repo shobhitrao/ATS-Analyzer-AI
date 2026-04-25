@@ -75,35 +75,44 @@ def extract_skills(text):
 # ATS SCORE
 # ==========================
 
+import re
 
 def match_score(resume_text, jd_text):
-    resume_text = resume_text.lower()
-    jd_text = jd_text.lower()
+    resume = resume_text.lower()
+    jd = jd_text.lower()
 
-    skills = [
-        "python", "java", "html", "css", "javascript",
-        "sql", "mysql", "flask", "django", "react",
-        "git", "github", "aws", "docker",
-        "machine learning", "pandas", "numpy", "c", "c++"
+    jd_skills = [
+        "python", "react", "sql", "html", "css",
+        "git", "aws", "django", "docker",
+        "machine learning"
     ]
 
-    jd_skills = []
     matched = 0
 
-    for skill in skills:
-        if re.search(r'\b' + re.escape(skill) + r'\b', jd_text):
-            jd_skills.append(skill)
-
-    total = len(jd_skills)
-
-    if total == 0:
-        return 50
-
     for skill in jd_skills:
-        if re.search(r'\b' + re.escape(skill) + r'\b', resume_text):
+        if skill in resume:
             matched += 1
 
-    score = int((matched / total) * 100)
+    # base skill score
+    score = int((matched / len(jd_skills)) * 100)
+
+    # bonus points
+    if "project" in resume:
+        score += 10
+
+    if "experience" in resume:
+        score += 10
+
+    if "github" in resume or "linkedin" in resume:
+        score += 5
+
+    # cap max
+    if score > 95:
+        score = 95
+
+    # minimum decent score
+    if score < 35:
+        score += 15
 
     return score
 
