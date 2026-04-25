@@ -12,7 +12,6 @@ from utils import (
     advanced_skills,
     match_score,
     detect_experience,
-    missing_skills,
     resume_tips,
     ai_summary,
     section_scores
@@ -82,9 +81,10 @@ def upload():
     phone = extract_phone(text)
     experience = detect_experience(text)
 
+    # Resume skills
     skills = advanced_skills(text)
 
-    # FINAL STATIC JD SKILLS (100% working)
+    # Static JD Skills
     jd_skills = [
         "Python",
         "React",
@@ -100,17 +100,27 @@ def upload():
 
     jd_text = " ".join(jd_skills)
 
+    # ATS score
     score = match_score(text, jd_text)
-    missing = missing_skills(skills, jd_skills)
 
+    # Proper missing skills compare
+    resume_lower = [x.lower().strip() for x in skills]
+    missing = []
+
+    for skill in jd_skills:
+        if skill.lower().strip() not in resume_lower:
+            missing.append(skill)
+
+    # Suggestions + summary
     tips = resume_tips(missing)
     summary = ai_summary(name, skills, score, missing)
 
-    # convert to text for frontend
+    # Convert for frontend
     skills_text = ", ".join(skills) if skills else "No Skills Found"
     jd_text_show = ", ".join(jd_skills)
-    missing_text = ", ".join(missing) if missing else "No Missing Skills"
+    missing_text = ", ".join(missing) if missing else "No Missing Skills 🎉"
 
+    # Save DB
     new_report = Report(
         username="demo_user",
         score=str(score),
