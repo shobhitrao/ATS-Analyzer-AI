@@ -226,7 +226,7 @@ def upload():
         tips=tips,
         summary=summary,
         jd_skills=jd_text_show,
-        sections=section_scores(skills, text)
+        sections=section_scores(text)
     )
 
 
