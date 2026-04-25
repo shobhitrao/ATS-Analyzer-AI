@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import timedelta
 import os
+import time
 import random
 
 from parser import extract_text
@@ -11,8 +13,8 @@ from utils import (
     extract_email,
     extract_phone,
     extract_skills,
+    advanced_skills,
     detect_experience,
-    missing_skills,
     resume_tips,
     ai_summary,
     section_scores,
@@ -21,6 +23,7 @@ from utils import (
 
 app = Flask(__name__)
 app.secret_key = "ats_secret_key_2026"
+app.permanent_session_lifetime = timedelta(minutes=2)
 
 # =========================
 # DATABASE
@@ -117,6 +120,7 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
+            session.permanent = True
             session["user"] = username
             return redirect("/")
 
@@ -142,13 +146,15 @@ def upload():
     if not is_logged_in():
         return redirect("/login")
 
-    file = request.files["resume"]
-    jd = request.form["jd"]
-
-    if not file or file.filename == "":
+    if "resume" not in request.files:
         return "No file selected"
 
-    filename = secure_filename(file.filename)
+    file = request.files["resume"]
+
+    if file.filename == "":
+        return "No file selected"
+
+    filename = str(int(time.time())) + "_" + secure_filename(file.filename)
     path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(path)
 
@@ -157,19 +163,51 @@ def upload():
     name = extract_name(text)
     email = extract_email(text)
     phone = extract_phone(text)
-    skills = extract_skills(text)
     experience = detect_experience(text)
 
-    missing = missing_skills(text, jd)
-    score = match_score(text, jd)
+    # Resume skills
+    skills = advanced_skills(text)
 
+    # Final Static JD Skills
+    jd_skills = [
+        "Python",
+        "React",
+        "SQL",
+        "HTML",
+        "CSS",
+        "Git",
+        "AWS",
+        "Django",
+        "Docker",
+        "Machine Learning"
+    ]
+
+    jd_text = " ".join(jd_skills)
+
+    # ATS Score
+    score = match_score(text, jd_text)
+
+    # Missing Skills Fix
+    resume_lower = [x.lower().strip() for x in skills]
+    missing = []
+
+    for skill in jd_skills:
+        if skill.lower().strip() not in resume_lower:
+            missing.append(skill)
+
+    # Text for Frontend
+    skills_text = ", ".join(skills) if skills else "No Skills Found"
+    jd_text_show = ", ".join(jd_skills)
+    missing_text = ", ".join(missing) if missing else "No Missing Skills 🎉"
+
+    # Suggestions
     tips = resume_tips(missing)
     summary = ai_summary(name, skills, score, missing)
-    sections = section_scores(text)
 
+    # Save Report
     report = Report(
         username=session["user"],
-        skills=", ".join(skills),
+        skills=skills_text,
         score=score
     )
 
@@ -182,13 +220,13 @@ def upload():
         email=email,
         phone=phone,
         experience=experience,
-        skills=skills,
-        missing=missing,
+        skills=skills_text,
+        missing=missing_text,
         score=score,
         tips=tips,
         summary=summary,
-        sections=sections,
-        jd_skills=extract_skills(jd)
+        jd_skills=jd_text_show,
+        sections=section_scores(skills, text)
     )
 
 
@@ -222,6 +260,17 @@ def delete_report(id):
 
 
 # =========================
+# DOWNLOAD REPORT
+# =========================
+@app.route("/download")
+def download():
+    if os.path.exists("report.pdf"):
+        return send_file("report.pdf", as_attachment=True)
+
+    return "PDF not found"
+
+
+# =========================
 # FORGOT PASSWORD
 # =========================
 @app.route("/forgot_password", methods=["GET", "POST"])
@@ -246,9 +295,6 @@ def forgot_password():
     return render_template("forgot_password.html")
 
 
-# =========================
-# VERIFY OTP
-# =========================
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
     if request.method == "POST":
@@ -262,9 +308,6 @@ def verify_otp():
     return render_template("verify_otp.html")
 
 
-# =========================
-# RESET PASSWORD
-# =========================
 @app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
     if request.method == "POST":
@@ -283,41 +326,6 @@ def reset_password():
         return redirect("/login")
 
     return render_template("reset_password.html")
-
-
-# =========================
-# CHANGE PASSWORD
-# =========================
-@app.route("/change_password", methods=["GET", "POST"])
-def change_password():
-    if not is_logged_in():
-        return redirect("/login")
-
-    if request.method == "POST":
-        old = request.form["old_password"]
-        new = request.form["new_password"]
-
-        user = User.query.filter_by(username=session["user"]).first()
-
-        if user and check_password_hash(user.password, old):
-            user.password = generate_password_hash(new)
-            db.session.commit()
-            return redirect("/")
-
-        return "Wrong old password"
-
-    return render_template("change_password.html")
-
-
-# =========================
-# DOWNLOAD REPORT
-# =========================
-@app.route("/download")
-def download():
-    if os.path.exists("report.pdf"):
-        return send_file("report.pdf", as_attachment=True)
-
-    return "PDF not found"
 
 
 # =========================
