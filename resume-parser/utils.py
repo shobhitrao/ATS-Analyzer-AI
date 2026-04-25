@@ -52,6 +52,8 @@ def extract_phone(text):
 # ==========================
 
 def extract_skills(text):
+    import re
+
     master_skills = [
         "python", "java", "html", "css", "javascript",
         "sql", "mysql", "flask", "django", "react",
@@ -67,7 +69,7 @@ def extract_skills(text):
         if re.search(pattern, text):
             found.append(skill.title())
 
-    return list(dict.fromkeys(found))
+    return found
 
 # ==========================
 # ATS SCORE
@@ -126,13 +128,13 @@ def detect_experience(text):
 # MISSING SKILLS
 # ==========================
 
-def missing_skills(resume_text, jd_text):
-    resume_skills = [x.lower() for x in extract_skills(resume_text)]
-    jd_skills = [x.lower() for x in extract_skills(jd_text)]
+def missing_skills(skills, jd_skills):
+    resume_skills = [x.lower().strip() for x in skills]
+    jd_required = [x.lower().strip() for x in jd_skills]
 
     missing = []
 
-    for skill in jd_skills:
+    for skill in jd_required:
         if skill not in resume_skills:
             missing.append(skill.title())
 
