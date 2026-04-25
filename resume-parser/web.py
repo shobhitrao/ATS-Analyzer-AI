@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, session
 from flask_sqlalchemy import SQLAlchemy
 import os
 import time
@@ -8,7 +8,6 @@ from utils import (
     extract_name,
     extract_email,
     extract_phone,
-    extract_skills,
     advanced_skills,
     match_score,
     detect_experience,
@@ -65,7 +64,7 @@ def dashboard():
 @app.route("/upload", methods=["POST"])
 def upload():
     if "resume" not in request.files:
-        return "No File"
+        return "No File Selected"
 
     file = request.files["resume"]
 
@@ -82,55 +81,41 @@ def upload():
 
     skills = advanced_skills(text)
 
-    # USER JD INPUT
-    jd = request.form.get("jd", "").strip()
+    # FINAL STATIC JD SKILLS (100% working)
+    jd_skills = [
+        "Python",
+        "React",
+        "SQL",
+        "HTML",
+        "CSS",
+        "Git",
+        "AWS",
+        "Django",
+        "Docker",
+        "Machine Learning"
+    ]
 
-    # DEFAULT JD
-    if not jd:
-        jd_skills = [
-            "Python",
-            "React",
-            "SQL",
-            "HTML",
-            "CSS",
-            "Git",
-            "AWS",
-            "Django",
-            "Docker",
-            "Machine Learning"
-        ]
-        jd = " ".join(jd_skills)
+    jd_text = " ".join(jd_skills)
 
-    else:
-        jd_skills = extract_skills(jd)
-
-        if not jd_skills:
-            jd_skills = [
-                "Python",
-                "React",
-                "SQL",
-                "HTML",
-                "CSS",
-                "Git",
-                "AWS",
-                "Django",
-                "Docker"
-            ]
-
-    score = match_score(text, jd)
+    score = match_score(text, jd_text)
     missing = missing_skills(skills, jd_skills)
+
+    tips = resume_tips(missing)
+    summary = ai_summary(name, skills, score, missing)
+
+    # convert to text for frontend
+    skills_text = ", ".join(skills) if skills else "No Skills Found"
+    jd_text_show = ", ".join(jd_skills)
+    missing_text = ", ".join(missing) if missing else "No Missing Skills"
 
     new_report = Report(
         username="demo_user",
         score=str(score),
-        skills=", ".join(skills)
+        skills=skills_text
     )
 
     db.session.add(new_report)
     db.session.commit()
-
-    tips = resume_tips(missing)
-    summary = ai_summary(name, skills, score, missing)
 
     return render_template(
         "result.html",
@@ -138,12 +123,12 @@ def upload():
         email=email,
         phone=phone,
         experience=experience,
-        skills=skills,
+        skills=skills_text,
         score=score,
         tips=tips,
-        missing=missing,
+        missing=missing_text,
         summary=summary,
-        jd_skills=jd_skills,
+        jd_skills=jd_text_show,
         sections=section_scores(skills, text)
     )
 
