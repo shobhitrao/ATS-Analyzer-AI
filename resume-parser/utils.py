@@ -50,25 +50,24 @@ def extract_phone(text):
 # ==========================
 # SKILLS
 # ==========================
+
 def extract_skills(text):
-    skills = [
-        "python","java","html","css","javascript",
-        "sql","flask","django","react","nodejs",
-        "aws","git","github","mongodb","mysql",
-        "numpy","pandas","excel","power bi",
-        "machine learning","data analysis",
-        "c++","c","php","bootstrap"
+    master_skills = [
+        "python", "java", "html", "css", "javascript",
+        "sql", "mysql", "flask", "django", "react",
+        "git", "github", "aws", "docker",
+        "machine learning", "c", "c++", "pandas", "numpy"
     ]
 
+    text = text.lower()
     found = []
-    lower = text.lower()
 
-    for skill in skills:
-        if skill in lower:
+    for skill in master_skills:
+        pattern = r'\b' + re.escape(skill) + r'\b'
+        if re.search(pattern, text):
             found.append(skill.title())
 
-    return list(set(found))
-
+    return list(dict.fromkeys(found))
 
 # ==========================
 # ATS SCORE
