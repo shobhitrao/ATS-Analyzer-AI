@@ -144,6 +144,13 @@ box-sizing:border-box;
 
 <div class="upload-box">
 
+    <!-- DISPLAY ERROR MESSAGE -->
+    {% if error %}
+    <p style="color:#ef4444; font-weight:bold; margin-bottom:10px; text-align:center;">
+    {{ error }}
+    </p>
+    {% endif %}
+
 <form action="/upload" method="POST" enctype="multipart/form-data">
 
 <input type="file" id="resumeFile" name="resume" required>
@@ -182,14 +189,21 @@ Smart Resume Analyzer Dashboard
 
 <script>
 
-document.getElementById("resumeFile").addEventListener("change", function () {
-const file = this.files[0];
+const fileInput = document.getElementById("resumeFile");
+const submitBtn = document.querySelector("button");
 
-if(file){
-document.getElementById("fileStatus").innerHTML = "✅ PDF Selected: " + file.name;
-}else{
-document.getElementById("fileStatus").innerHTML = "No file selected";
-}
+submitBtn.disabled = true;
+
+fileInput.addEventListener("change", function () {
+    const file = this.files[0];
+
+    if(file){
+        document.getElementById("fileStatus").innerHTML = "✅ File Selected: " + file.name;
+        submitBtn.disabled = false;
+    } else {
+        document.getElementById("fileStatus").innerHTML = "No file selected";
+        submitBtn.disabled = true;
+    }
 });
 
 let idleTime = 0;
@@ -213,7 +227,16 @@ document.onscroll = resetTimer;
 function resetTimer() {
 idleTime = 0;
 }
+const form = document.querySelector("form");
 
+form.addEventListener("submit", function(e){
+    const jd = document.querySelector("textarea[name='jd']").value.trim();
+
+    if(jd === ""){
+        alert("Please enter Job Description");
+        e.preventDefault();
+    }
+});
 </script>
 
 </body>

@@ -147,12 +147,22 @@ def upload():
         return redirect("/login")
 
     if "resume" not in request.files:
-        return "No file selected"
+        return render_template("index.html", error="Please upload a resume")
 
     file = request.files["resume"]
 
     if file.filename == "":
-        return "No file selected"
+        return render_template("index.html", error="Please select a file")
+
+    jd_text_input = request.form.get("jd")
+
+    if not jd_text_input or jd_text_input.strip() == "":
+        return render_template("index.html", error="Job description cannot be empty")
+    
+    # File type validation
+    if not file.filename.lower().endswith((".pdf", ".docx")):
+        return render_template("index.html", error="Only PDF or DOCX files are allowed")
+    
 
     filename = str(int(time.time())) + "_" + secure_filename(file.filename)
     path = os.path.join(UPLOAD_FOLDER, filename)
@@ -168,27 +178,42 @@ def upload():
     # Resume skills
     skills = advanced_skills(text)
 
-    # Final Static JD Skills
-    jd_skills = [
-        "Python",
-        "React",
-        "SQL",
-        "HTML",
-        "CSS",
-        "Git",
-        "AWS",
-        "Django",
-        "Docker",
-        "Machine Learning"
+    known_skills = [
+        # Programming Languages
+        "python", "java", "c", "c++", "javascript", "typescript", "go", "ruby", "kotlin", "swift",
+
+        # Web Development
+        "html", "css", "react", "angular", "vue", "node", "express", "flask", "django",
+
+        # Databases
+        "sql", "mysql", "postgresql", "mongodb", "redis", "sqlite",
+
+        # Cloud & DevOps
+        "aws", "azure", "gcp", "docker", "kubernetes", "jenkins", "terraform",
+
+        # Data & AI
+        "machine learning", "deep learning", "nlp", "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch",
+
+        # Tools & Others
+        "git", "github", "linux", "bash", "rest api", "graphql", "microservices"
     ]
 
-    jd_text = " ".join(jd_skills)
+    jd_text_lower = jd_text_input.lower()
+
+    jd_skills = []
+
+    for skill in known_skills:
+        if skill in jd_text_lower:
+            jd_skills.append(skill)
+    
+    jd_text = jd_text_input
 
     # ATS Score
     score = match_score(text, jd_text)
 
     # Missing Skills Fix
     resume_lower = [x.lower().strip() for x in skills]
+    jd_skills = [s.lower() for s in jd_skills]
     missing = []
 
     for skill in jd_skills:
