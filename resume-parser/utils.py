@@ -6,8 +6,6 @@ import re
 # ==========================
 
 
-import re
-
 def extract_name(text):
     lines = [line.strip() for line in text.split("\n") if line.strip()]
 
