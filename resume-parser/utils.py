@@ -5,37 +5,50 @@ import re
 # NAME
 # ==========================
 
+
 def extract_name(text):
     lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-    # 1. Email ke paas naam dhundo
+    blocked = [
+        "resume", "curriculum vitae", "profile", "summary",
+        "technical skills", "work experience", "projects",
+        "education", "certifications", "email", "phone",
+        "linkedin", "github"
+    ]
+
+    # 1. First 8 lines me heading name dhundo (ALL CAPS bhi chalega)
+    for line in lines[:8]:
+        clean = re.sub(r'[^A-Za-z ]', '', line).strip()
+
+        if not clean:
+            continue
+
+        low = clean.lower()
+
+        if any(word in low for word in blocked):
+            continue
+
+        words = clean.split()
+
+        if 2 <= len(words) <= 3:
+            return " ".join(w.capitalize() for w in words)
+
+    # 2. Email ke upar lines check karo
     for i, line in enumerate(lines):
         if "@" in line:
             for j in range(max(0, i-3), i):
-                candidate = lines[j]
+                clean = re.sub(r'[^A-Za-z ]', '', lines[j]).strip()
+                words = clean.split()
+                if 2 <= len(words) <= 3:
+                    return " ".join(w.capitalize() for w in words)
 
-                if re.match(r'^[A-Za-z ]+$', candidate):
-                    words = candidate.split()
+    # 3. Fallback email username
+    m = re.search(r'([\w\.-]+)@', text)
+    if m:
+        user = m.group(1).replace(".", " ").replace("_", " ")
+        return " ".join(w.capitalize() for w in user.split())
 
-                    if 2 <= len(words) <= 3:
-                        return candidate.title()
-
-    # 2. Top lines me dhundo
-    for line in lines[:10]:
-        if re.match(r'^[A-Za-z ]+$', line):
-            words = line.split()
-
-            if 2 <= len(words) <= 3:
-                return line.title()
-
-    # 3. Email username se name banao
-    email = re.search(r'[\w\.-]+@[\w\.-]+', text)
-    if email:
-        username = email.group(0).split("@")[0]
-        username = username.replace(".", " ").replace("_", " ")
-        return username.title()
-
-    return "Name Not Found"
+    return "Candidate"
 
 # ==========================
 # EMAIL
