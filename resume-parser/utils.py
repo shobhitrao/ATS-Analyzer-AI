@@ -5,54 +5,29 @@ import re
 # NAME
 # ==========================
 
-
 def extract_name(text):
-    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    lines = [x.strip() for x in text.split("\n") if x.strip()]
 
-    blocked_words = {
-        "email", "phone", "linkedin", "github", "address",
-        "summary", "profile", "skills", "experience",
-        "education", "projects", "certifications",
-        "objective", "resume", "cv"
-    }
+    bad = [
+        "email", "phone", "linkedin", "github",
+        "career", "objective", "education",
+        "skills", "project", "experience"
+    ]
 
-    # top lines me search
-    for line in lines[:15]:
+    # First pass: first 12 lines me clean 2-3 word line
+    for line in lines[:12]:
         low = line.lower()
 
-        # skip unwanted lines
-        if any(word in low for word in blocked_words):
+        if any(b in low for b in bad):
             continue
 
-        if "@" in line:
+        if "@" in line or "http" in low:
             continue
 
-        if re.search(r'\d', line):
-            continue
-
-        # remove symbols
-        clean = re.sub(r'[^A-Za-z ]', '', line).strip()
-        words = clean.split()
-
-        # 2 to 4 words likely person name
-        if 2 <= len(words) <= 4:
-            good = True
-            for w in words:
-                if len(w) < 2:
-                    good = False
-
-            if good:
-                return " ".join(x.capitalize() for x in words)
-
-    # fallback from email
-    email = re.search(r'([\w\.-]+)@', text)
-    if email:
-        username = email.group(1)
-        username = username.replace(".", " ").replace("_", " ")
-        words = username.split()
-
-        if 1 <= len(words) <= 3:
-            return " ".join(x.capitalize() for x in words)
+        if re.match(r'^[A-Za-z ]+$', line):
+            words = line.split()
+            if 2 <= len(words) <= 3:
+                return " ".join(w.capitalize() for w in words)
 
     return "Candidate"
 
