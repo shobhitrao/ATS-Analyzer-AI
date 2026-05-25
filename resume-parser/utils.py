@@ -1,5 +1,6 @@
 import re
-
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 # ==========================
@@ -7,6 +8,7 @@ import re
 # ==========================
 
 def extract_name(text):
+
     lines = [x.strip() for x in text.split("\n") if x.strip()]
 
     bad = [
@@ -15,8 +17,8 @@ def extract_name(text):
         "skills", "project", "experience"
     ]
 
-    # First pass: first 12 lines me clean 2-3 word line
     for line in lines[:12]:
+
         low = line.lower()
 
         if any(b in low for b in bad):
@@ -26,26 +28,69 @@ def extract_name(text):
             continue
 
         if re.match(r'^[A-Za-z ]+$', line):
+
             words = line.split()
+
             if 2 <= len(words) <= 3:
                 return " ".join(w.capitalize() for w in words)
 
     return "Candidate"
 
+
 # ==========================
 # EMAIL
 # ==========================
+
 def extract_email(text):
+
     match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+
     return match.group(0) if match else "Not Found"
 
 
 # ==========================
 # PHONE
 # ==========================
+
 def extract_phone(text):
+
     match = re.search(r'(\+91[-\s]?\d{10}|\d{10})', text)
+
     return match.group(0) if match else "Not Found"
+
+
+# ==========================
+# MASTER SKILLS
+# ==========================
+
+MASTER_SKILLS = [
+
+    "python",
+    "java",
+    "c",
+    "c++",
+    "html",
+    "css",
+    "javascript",
+    "react",
+    "nodejs",
+    "sql",
+    "mysql",
+    "mongodb",
+    "flask",
+    "django",
+    "fastapi",
+    "git",
+    "github",
+    "aws",
+    "docker",
+    "machine learning",
+    "deep learning",
+    "data analysis",
+    "pandas",
+    "numpy",
+    "api"
+]
 
 
 # ==========================
@@ -53,74 +98,68 @@ def extract_phone(text):
 # ==========================
 
 def extract_skills(text):
-    import re
-
-    master_skills = [
-        "python", "java", "html", "css", "javascript",
-        "sql", "mysql", "flask", "django", "react",
-        "git", "github", "aws", "docker",
-        "machine learning", "c", "c++", "pandas", "numpy"
-    ]
 
     text = text.lower()
+
     found = []
 
-    for skill in master_skills:
+    for skill in MASTER_SKILLS:
+
         pattern = r'\b' + re.escape(skill) + r'\b'
+
         if re.search(pattern, text):
             found.append(skill.title())
 
-    return found
+    return list(set(found))
+
 
 # ==========================
 # ATS SCORE
 # ==========================
 
-import re
-
 def match_score(resume_text, jd_text):
+
     resume = resume_text.lower()
     jd = jd_text.lower()
 
-    jd_skills = [
-        "python", "react", "sql", "html", "css",
-        "git", "aws", "django", "docker",
-        "machine learning"
-    ]
+    # Cosine Similarity
+    documents = [resume, jd]
 
-    matched = 0
+    cv = CountVectorizer()
 
-    for skill in jd_skills:
-        if skill in resume:
-            matched += 1
+    matrix = cv.fit_transform(documents)
 
-    # base skill score
-    score = int((matched / len(jd_skills)) * 100)
+    similarity = cosine_similarity(matrix)[0][1]
 
-    # bonus points
+    score = int(similarity * 100)
+
+    # Bonus logic
     if "project" in resume:
-        score += 10
+        score += 5
 
     if "experience" in resume:
         score += 10
 
-    if "github" in resume or "linkedin" in resume:
+    if "github" in resume:
         score += 5
 
-    # cap max
+    # limit
     if score > 95:
         score = 95
 
-    # minimum decent score
-    if score < 35:
-        score += 15
+    # minimum realistic score
+    if score < 40:
+        score += 25
 
     return score
+
 
 # ==========================
 # EXPERIENCE
 # ==========================
+
 def detect_experience(text):
+
     t = text.lower()
 
     if "year" in t or "years" in t:
@@ -137,12 +176,15 @@ def detect_experience(text):
 # ==========================
 
 def missing_skills(skills, jd_skills):
+
     resume_skills = [x.lower().strip() for x in skills]
+
     jd_required = [x.lower().strip() for x in jd_skills]
 
     missing = []
 
     for skill in jd_required:
+
         if skill not in resume_skills:
             missing.append(skill.title())
 
@@ -150,16 +192,19 @@ def missing_skills(skills, jd_skills):
 
 
 # ==========================
-# TIPS
+# RESUME TIPS
 # ==========================
+
 def resume_tips(missing):
+
     tips = []
 
     if missing:
+
         for skill in missing:
             tips.append(f"Add {skill} skill in resume")
 
-    if not tips:
+    else:
         tips.append("Resume looks strong")
 
     return tips
@@ -168,7 +213,9 @@ def resume_tips(missing):
 # ==========================
 # AI SUMMARY
 # ==========================
+
 def ai_summary(name, skills, score, missing):
+
     msg = f"{name} has {len(skills)} technical skills with ATS score {score}%. "
 
     if missing:
@@ -185,6 +232,7 @@ def ai_summary(name, skills, score, missing):
 # ==========================
 
 def section_scores(text):
+
     t = text.lower()
 
     # Skills
@@ -202,32 +250,42 @@ def section_scores(text):
     # Experience
     if "5 years" in t or "4 years" in t or "3 years" in t:
         exp = 88
+
     elif "2 years" in t or "1 year" in t:
         exp = 78
+
     elif "intern" in t:
         exp = 68
+
     elif "fresher" in t:
         exp = 60
+
     else:
         exp = 55
 
     # Projects
     if "project" in t and "github" in t:
         proj = 90
+
     elif "project" in t:
         proj = 78
+
     elif "portfolio" in t:
         proj = 70
+
     else:
         proj = 58
 
     # Education
     if "m.tech" in t or "mba" in t or "mca" in t:
         edu = 88
+
     elif "b.tech" in t or "btech" in t or "bca" in t or "b.sc" in t:
         edu = 80
+
     elif "12th" in t:
         edu = 65
+
     else:
         edu = 55
 
@@ -237,18 +295,12 @@ def section_scores(text):
         "Projects": proj,
         "Education": edu
     }
-    
+
+
+# ==========================
+# ADVANCED SKILLS
+# ==========================
+
 def advanced_skills(text):
+
     return extract_skills(text)
-    
-def match_score(resume_text, jd_text):
-    resume_words = set(resume_text.lower().split())
-    jd_words = set(jd_text.lower().split())
-
-    if len(jd_words) == 0:
-        return 0
-
-    matched = resume_words.intersection(jd_words)
-    score = int((len(matched) / len(jd_words)) * 100)
-
-    return score
