@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>ATS Analyzer AI</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+padding:30px;
+}
+
+.container{
+max-width:950px;
+margin:auto;
+background:#111827;
+padding:35px;
+border-radius:22px;
+box-shadow:0 0 30px rgba(0,0,0,.4);
+}
+
+h1{
+text-align:center;
+font-size:42px;
+margin-bottom:35px;
+color:#38bdf8;
+}
+
+.card{
+background:#1f2937;
+padding:18px;
+margin:14px 0;
+border-radius:14px;
+font-size:20px;
+}
+
+.section-title{
+font-size:30px;
+margin-bottom:20px;
+color:#38bdf8;
+}
+
+.skills-container{
+display:flex;
+flex-wrap:wrap;
+gap:12px;
+margin-top:15px;
+}
+
+.skill-badge{
+padding:10px 16px;
+background:#2563eb;
+border-radius:30px;
+font-size:16px;
+font-weight:bold;
+}
+
+.missing-badge{
+padding:10px 16px;
+background:#dc2626;
+border-radius:30px;
+font-size:16px;
+font-weight:bold;
+}
+
+.summary-box{
+margin-top:30px;
+padding:28px;
+border-radius:20px;
+background:linear-gradient(135deg,#0ea5e9,#2563eb);
+box-shadow:0 10px 25px rgba(0,0,0,.25);
+}
+
+.summary-box p{
+margin-top:12px;
+font-size:19px;
+line-height:1.7;
+}
+
+.section-box{
+margin-top:35px;
+padding:30px;
+background:#1f2937;
+border-radius:22px;
+}
+
+.bar-row{
+display:flex;
+justify-content:space-between;
+margin-top:18px;
+font-size:18px;
+}
+
+.bar{
+height:14px;
+background:#374151;
+border-radius:12px;
+overflow:hidden;
+margin-top:8px;
+}
+
+.fill{
+height:100%;
+border-radius:12px;
+background:linear-gradient(90deg,#22c55e,#3b82f6);
+}
+
+.meter-section{
+margin-top:35px;
+padding:35px;
+background:#182235;
+border-radius:25px;
+text-align:center;
+}
+
+.meter-section h2{
+font-size:38px;
+color:#38bdf8;
+margin-bottom:30px;
+}
+
+.progress-circle{
+width:250px;
+height:250px;
+border-radius:50%;
+margin:auto;
+display:flex;
+justify-content:center;
+align-items:center;
+background:conic-gradient(#22c55e 0deg,#1e293b 0deg);
+transition:1s;
+box-shadow:0 0 35px rgba(34,197,94,.3);
+}
+
+.inner-circle{
+width:185px;
+height:185px;
+border-radius:50%;
+background:#0f172a;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+#score-text{
+font-size:50px;
+font-weight:bold;
+}
+
+.tips-box{
+margin-top:30px;
+display:flex;
+flex-direction:column;
+gap:16px;
+}
+
+.tip-card{
+padding:18px;
+border-radius:16px;
+font-size:18px;
+font-weight:bold;
+background:linear-gradient(135deg,#22c55e,#16a34a);
+}
+
+.links{
+margin-top:35px;
+}
+
+.links a{
+display:inline-block;
+margin-right:20px;
+padding:14px 22px;
+background:#2563eb;
+color:white;
+text-decoration:none;
+border-radius:12px;
+font-size:18px;
+transition:.3s;
+}
+
+.links a:hover{
+transform:scale(1.05);
+}
+
+@media(max-width:768px){
+
+.container{
+padding:20px;
+}
+
+h1{
+font-size:32px;
+}
+
+.progress-circle{
+width:200px;
+height:200px;
+}
+
+.inner-circle{
+width:145px;
+height:145px;
+}
+
+#score-text{
+font-size:38px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 Resume ATS Dashboard</h1>
+
+<div class="card"><b>Name:</b> {{ name }}</div>
+
+<div class="card"><b>Email:</b> {{ email }}</div>
+
+<div class="card"><b>Phone:</b> {{ phone }}</div>
+
+<div class="card"><b>Experience:</b> {{ experience }}</div>
+
+<!-- SKILLS -->
+
+<div class="section-box">
+
+<h2 class="section-title">🛠 Skills</h2>
+
+<div class="skills-container">
+
+{% for skill in skills.split(",") %}
+
+<div class="skill-badge">
+{{ skill }}
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+<!-- MISSING SKILLS -->
+
+<div class="section-box">
+
+<h2 class="section-title">❌ Missing Skills</h2>
+
+<div class="skills-container">
+
+{% if missing != "No Missing Skills 🎉" %}
+
+{% for skill in missing.split(",") %}
+
+<div class="missing-badge">
+{{ skill }}
+</div>
+
+{% endfor %}
+
+{% else %}
+
+<div class="skill-badge">
+Perfect Resume 🎉
+</div>
+
+{% endif %}
+
+</div>
+
+</div>
+
+<!-- AI SUMMARY -->
+
+<div class="summary-box">
+
+<h2>🤖 AI Summary</h2>
+
+<p>{{ summary }}</p>
+
+</div>
+
+<!-- JD MATCH -->
+
+<div class="section-box">
+
+<h2 class="section-title">💼 Job Description Match</h2>
+
+<div class="card">
+<b>Required Skills:</b> {{ jd_skills }}
+</div>
+
+<div class="card">
+<b>Missing Skills:</b> {{ missing }}
+</div>
+
+</div>
+
+<!-- SECTION SCORES -->
+
+<div class="section-box">
+
+<h2 class="section-title">📈 Section Scores</h2>
+
+{% for key, value in sections.items() %}
+
+<div class="bar-row">
+
+<span>{{ key }}</span>
+
+<span>{{ value }}%</span>
+
+</div>
+
+<div class="bar">
+
+<div class="fill" style="width: {{ value }}%"></div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<!-- ATS SCORE -->
+
+<div class="meter-section">
+
+<h2>📊 ATS Score</h2>
+
+<div class="progress-circle" data-score="{{ score }}">
+
+<div class="inner-circle">
+
+<span id="score-text">0%</span>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- TIPS -->
+
+<div class="tips-box">
+
+{% for tip in tips %}
+
+<div class="tip-card">
+
+✨ {{ tip }}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<!-- LINKS -->
+
+<div class="links">
+
+<a href="/">⬅ Upload Another Resume</a>
+
+<a href="/download">📄 Download PDF Report</a>
+
+</div>
+
+</div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+
+let circle = document.querySelector(".progress-circle");
+
+let score = parseInt(circle.dataset.score) || 0;
+
+let text = document.getElementById("score-text");
+
+let count = 0;
+
+let color = "#22c55e";
+
+if(score <= 40){
+color = "#ef4444";
+}
+else if(score <= 70){
+color = "#facc15";
+}
+
+let interval = setInterval(function(){
+
+if(count >= score){
+
+clearInterval(interval);
+
+}else{
+
+count++;
+
+text.innerText = count + "%";
+
+circle.style.background =
+`conic-gradient(${color} ${count * 3.6}deg,#1e293b 0deg)`;
+
+}
+
+},15);
+
+});
+
+</script>
+
+</body>
+</html>
