@@ -205,3 +205,26 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# =========================
+# ATS Analyzer AI
+# =========================
+
+# React
+frontend/node_modules/
+
+# Uploaded Resume Files
+uploads/*
+!uploads/.gitkeep
+
+# SQLite Database
+instance/*.db
+
+# Generated PDF Reports
+report*.pdf
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store

@@ -173,21 +173,51 @@ background:linear-gradient(135deg,#22c55e,#16a34a);
 
 .links{
 margin-top:35px;
+display:flex;
+justify-content:center;
+align-items:center;
+gap:25px;
+flex-wrap:wrap;
 }
 
 .links a{
-display:inline-block;
-margin-right:20px;
-padding:14px 22px;
+display:flex;
+justify-content:center;
+align-items:center;
+min-width:280px;
+padding:16px 24px;
 background:#2563eb;
 color:white;
 text-decoration:none;
 border-radius:12px;
-font-size:18px;
+font-size:22px;
+font-weight:bold;
 transition:.3s;
 }
 
 .links a:hover{
+transform:scale(1.05);
+}
+
+.download-btn{
+background:#16a34a !important;
+}
+
+.download-btn:hover{
+background:#15803d !important;
+}
+
+
+.links a:hover{
+transform:scale(1.05);
+}
+
+.download-btn{
+background:#16a34a!important;
+}
+
+.download-btn:hover{
+background:#15803d !important;
 transform:scale(1.05);
 }
 
@@ -210,6 +240,7 @@ height:200px;
 width:145px;
 height:145px;
 }
+
 
 #score-text{
 font-size:38px;
@@ -243,11 +274,11 @@ font-size:38px;
 <div class="skills-container">
 
 {% for skill in skills.split(",") %}
-
+{% if skill.strip() %}
 <div class="skill-badge">
-{{ skill }}
+{{ skill.strip() }}
 </div>
-
+{% endif %}
 {% endfor %}
 
 </div>
@@ -265,11 +296,11 @@ font-size:38px;
 {% if missing != "No Missing Skills 🎉" %}
 
 {% for skill in missing.split(",") %}
-
+{% if skill.strip() %}
 <div class="missing-badge">
-{{ skill }}
+{{ skill.strip() }}
 </div>
-
+{% endif %}
 {% endfor %}
 
 {% else %}
@@ -292,6 +323,10 @@ Perfect Resume 🎉
 
 <p>{{ summary }}</p>
 
+<hr style="margin:15px 0;opacity:.3;">
+
+<p><b>Overall ATS Score:</b> {{ score }}%</p>
+
 </div>
 
 <!-- JD MATCH -->
@@ -307,16 +342,6 @@ Perfect Resume 🎉
 <div class="card">
 <b>Missing Skills:</b> {{ missing }}
 </div>
-
-</div>
-
-<div class="summary-box">
-
-<h2>🧠 AI Resume Suggestions</h2>
-
-<p style="white-space: pre-line;">
-{{ ai_suggestions }}
-</p>
 
 </div>
 
@@ -354,13 +379,25 @@ Perfect Resume 🎉
 
 <div class="progress-circle" data-score="{{ score }}">
 
-<div class="inner-circle">
-
-<span id="score-text">0%</span>
-
-</div>
+    <div class="inner-circle">
+        <span id="score-text">0%</span>
+    </div>
 
 </div>
+
+<h3 style="margin-top:25px;font-size:24px;font-weight:bold;">
+
+{% if score>=85 %}
+🟢 Excellent Resume
+{% elif score>=70 %}
+🟡 Good Resume
+{% elif score>=50 %}
+🟠 Needs Improvement
+{% else %}
+🔴 Poor Resume
+{% endif %}
+
+</h3>
 
 </div>
 
@@ -384,25 +421,23 @@ Perfect Resume 🎉
 
 <div class="links">
 
-<a href="/">⬅ Upload Another Resume</a>
+<a href="/" onclick="return confirm('Analyze another resume?')">
+⬅ Upload Another Resume
+</a>
 
-<a href="/download">📄 Download PDF Report</a>
+<a href="/download" class="download-btn">
+📄 Download PDF Report
+</a>
 
 </div>
 
-<!-- INTERVIEW QUESTIONS -->
+<hr style="margin-top:35px;border:0;border-top:1px solid #374151;">
 
-<div class="summary-box">
+<p style="text-align:center;color:#94a3b8;margin-top:20px;font-size:15px;">
 
-<h2>🎤 AI Interview Questions</h2>
-
-<p style="white-space: pre-line; line-height:1.8;">
-
-{{ interview_questions }}
+Powered by <b>ATS Analyzer AI</b> | Developed by <b>Shobhit</b> © 2026
 
 </p>
-
-</div>
 
 </div>
 
@@ -420,11 +455,17 @@ let count = 0;
 
 let color = "#22c55e";
 
-if(score <= 40){
-color = "#ef4444";
+if(score<40){
+color="#ef4444";
 }
-else if(score <= 70){
-color = "#facc15";
+else if(score<60){
+color="#f97316";
+}
+else if(score<80){
+color="#facc15";
+}
+else{
+color="#22c55e";
 }
 
 let interval = setInterval(function(){
@@ -435,7 +476,11 @@ clearInterval(interval);
 
 }else{
 
-count++;
+count += 2;
+
+if(count>score){
+count=score;
+}
 
 text.innerText = count + "%";
 
@@ -448,7 +493,7 @@ circle.style.background =
 
 });
 
-</script>
 
+</script>
 </body>
 </html>

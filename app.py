@@ -1,19 +1,16 @@
 import os
+import time
 import google.generativeai as genai
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+from datetime import timedelta
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
-
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
-
-import os
-import time
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 from parser import extract_text
-
 from utils import (
     extract_name,
     extract_email,
@@ -25,8 +22,17 @@ from utils import (
     ai_summary,
     section_scores,
     match_score,
-    missing_skills
+    missing_skills,
 )
+
+# =========================
+# GEMINI CONFIG
+# =========================
+
+api_key = os.getenv("GEMINI_API_KEY")
+
+if api_key:
+    genai.configure(api_key=api_key)
 
 # =========================
 # APP CONFIG
@@ -34,8 +40,7 @@ from utils import (
 
 app = Flask(__name__)
 
-app.secret_key = "ats_secret_key_2026"
-
+app.secret_key = os.getenv("SECRET_KEY", "ats_secret_key_2026")
 app.permanent_session_lifetime = timedelta(minutes=30)
 
 # =========================
@@ -43,47 +48,44 @@ app.permanent_session_lifetime = timedelta(minutes=30)
 # =========================
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///ats_analyzer.db"
-
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
 # =========================
-# UPLOAD FOLDER
+# UPLOAD CONFIG
 # =========================
 
 UPLOAD_FOLDER = "uploads"
+ALLOWED_EXTENSIONS = {"pdf"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+
+def allowed_file(filename):
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
+
+
 # =========================
-# MODELS
+# DATABASE MODELS
 # =========================
 
 class User(db.Model):
-
     id = db.Column(db.Integer, primary_key=True)
 
-    username = db.Column(
-        db.String(120),
-        unique=True,
-        nullable=False
-    )
+    username = db.Column(db.String(120), unique=True, nullable=False)
 
-    email = db.Column(
-        db.String(150),
-        unique=True,
-        nullable=False
-    )
+    email = db.Column(db.String(150), unique=True, nullable=False)
 
-    password = db.Column(
-        db.String(300),
-        nullable=False
-    )
+    password = db.Column(db.String(300), nullable=False)
 
 
 class Report(db.Model):
-
     id = db.Column(db.Integer, primary_key=True)
 
     username = db.Column(db.String(120))
@@ -96,13 +98,14 @@ class Report(db.Model):
 with app.app_context():
     db.create_all()
 
+
 # =========================
 # LOGIN CHECK
 # =========================
 
 def is_logged_in():
-
     return "user" in session
+
 
 # =========================
 # HOME
@@ -116,6 +119,7 @@ def home():
 
     return render_template("index.html")
 
+
 # =========================
 # SIGNUP
 # =========================
@@ -126,14 +130,12 @@ def signup():
     if request.method == "POST":
 
         username = request.form["username"].strip()
-
         email = request.form["email"].strip()
-
         password = request.form["password"]
 
         existing = User.query.filter(
-            (User.username == username) |
-            (User.email == email)
+            (User.username == username)
+            | (User.email == email)
         ).first()
 
         if existing:
@@ -148,12 +150,12 @@ def signup():
         )
 
         db.session.add(user)
-
         db.session.commit()
 
         return redirect("/login")
 
     return render_template("signup.html")
+
 
 # =========================
 # LOGIN
@@ -165,7 +167,6 @@ def login():
     if request.method == "POST":
 
         username = request.form["username"]
-
         password = request.form["password"]
 
         user = User.query.filter_by(
@@ -178,7 +179,6 @@ def login():
         ):
 
             session.permanent = True
-
             session["user"] = username
 
             return redirect("/")
@@ -186,6 +186,7 @@ def login():
         return "Invalid Login"
 
     return render_template("login.html")
+
 
 # =========================
 # LOGOUT
@@ -198,8 +199,9 @@ def logout():
 
     return redirect("/login")
 
+
 # =========================
-# UPLOAD + ANALYZE
+# UPLOAD
 # =========================
 
 @app.route("/upload", methods=["POST"])
@@ -216,42 +218,41 @@ def upload():
     if file.filename == "":
         return "No file selected"
 
-    # =========================
-    # SAVE FILE
-    # =========================
+    if not allowed_file(file.filename):
+        return "Only PDF files are allowed."
 
     filename = (
-        str(int(time.time())) +
-        "_" +
-        secure_filename(file.filename)
+        str(int(time.time()))
+        + "_"
+        + secure_filename(file.filename)
     )
 
     filepath = os.path.join(
-        UPLOAD_FOLDER,
-        filename
+        app.config["UPLOAD_FOLDER"],
+        filename,
     )
 
     file.save(filepath)
 
-    # =========================
-    # EXTRACT TEXT
-    # =========================
-
     text = extract_text(filepath)
 
     if not text:
+        os.remove(filepath)
         return "Could not extract resume text"
+
+    # Continue with:
+    # name = extract_name(text)
+    # email = extract_email(text)
+    # phone = extract_phone(text)
+    # ...
 
     # =========================
     # BASIC INFO
     # =========================
 
     name = extract_name(text)
-
     email = extract_email(text)
-
     phone = extract_phone(text)
-
     experience = detect_experience(text)
 
     # =========================
@@ -261,24 +262,25 @@ def upload():
     skills = advanced_skills(text)
 
     # =========================
-    # JOB DESCRIPTION SKILLS
+    # JOB DESCRIPTION
     # =========================
 
-    jd_skills = [
+    jd_text = request.form.get("job_description", "").strip()
 
-        "Python",
-        "React",
-        "SQL",
-        "HTML",
-        "CSS",
-        "Git",
-        "AWS",
-        "Django",
-        "Docker",
-        "Machine Learning"
-    ]
+    if not jd_text:
+        jd_text = """
+Python
+SQL
+HTML
+CSS
+JavaScript
+Git
+Communication
+Problem Solving
+Team Work
+"""
 
-    jd_text = " ".join(jd_skills)
+    jd_skills = extract_skills(jd_text)
 
     # =========================
     # SECTION SCORES
@@ -287,75 +289,55 @@ def upload():
     sections = section_scores(text)
 
     # =========================
-    # JD MATCH SCORE
+    # JD MATCH
     # =========================
 
-    jd_match_score = match_score(
-        text,
-        jd_text
-    )
+    jd_match_score = match_score(text, jd_text)
 
     # =========================
     # FINAL ATS SCORE
     # =========================
 
     WEIGHTS = {
-
-        "skills": 0.35,
-
-        "experience": 0.25,
-
-        "projects": 0.20,
-
+        "skills": 0.40,
+        "experience": 0.20,
+        "projects": 0.15,
         "education": 0.10,
-
-        "jd_match": 0.10
+        "jd_match": 0.15,
     }
 
-    final_score = (
-
-        sections["Skills"] * WEIGHTS["skills"] +
-
-        sections["Experience"] * WEIGHTS["experience"] +
-
-        sections["Projects"] * WEIGHTS["projects"] +
-
-        sections["Education"] * WEIGHTS["education"] +
-
-        jd_match_score * WEIGHTS["jd_match"]
+    final_score = round(
+        sections["Skills"] * WEIGHTS["skills"]
+        + sections["Experience"] * WEIGHTS["experience"]
+        + sections["Projects"] * WEIGHTS["projects"]
+        + sections["Education"] * WEIGHTS["education"]
+        + jd_match_score * WEIGHTS["jd_match"]
     )
 
-    final_score = round(final_score)
+    final_score = max(0, min(100, final_score))
 
     # =========================
     # MISSING SKILLS
     # =========================
 
-    missing = missing_skills(
-        skills,
-        jd_skills
-    )
+    missing = missing_skills(skills, jd_skills)
 
     # =========================
     # DISPLAY TEXT
     # =========================
 
-    skills_text = (
-        ", ".join(skills)
-        if skills else
-        "No Skills Found"
-    )
+    skills_text = ", ".join(skills) if skills else "No Skills Found"
 
     missing_text = (
         ", ".join(missing)
-        if missing else
-        "No Missing Skills 🎉"
+        if missing
+        else "No Missing Skills 🎉"
     )
 
-    jd_text_show = ", ".join(jd_skills)
+    jd_text_show = jd_text
 
     # =========================
-    # TIPS + SUMMARY
+    # TIPS & SUMMARY
     # =========================
 
     tips = resume_tips(missing)
@@ -364,7 +346,7 @@ def upload():
         name,
         skills,
         final_score,
-        missing
+        missing,
     )
 
     # =========================
@@ -372,49 +354,55 @@ def upload():
     # =========================
 
     report = Report(
-
         username=session["user"],
-
         skills=skills_text,
-
-        score=final_score
+        score=final_score,
     )
 
     db.session.add(report)
-
     db.session.commit()
+
+    # =========================
+    # GENERATE PDF REPORT
+    # =========================
+
+    generate_pdf_report(
+        name=name,
+        email=email,
+        phone=phone,
+        experience=experience,
+        score=final_score,
+        skills=skills_text,
+        missing=missing_text,
+        summary=summary,
+        tips=tips,
+    )
+
+    # =========================
+    # DELETE TEMP FILE
+    # =========================
+
+    if os.path.exists(filepath):
+        os.remove(filepath)
 
     # =========================
     # RESULT PAGE
     # =========================
 
     return render_template(
-
         "result.html",
-
         name=name,
-
         email=email,
-
         phone=phone,
-
         experience=experience,
-
         skills=skills_text,
-
         missing=missing_text,
-
         score=final_score,
-
         tips=tips,
-
         summary=summary,
-
         jd_skills=jd_text_show,
-
-        sections=sections
+        sections=sections,
     )
-
 # =========================
 # HISTORY
 # =========================
@@ -425,14 +413,18 @@ def history():
     if not is_logged_in():
         return redirect("/login")
 
-    reports = Report.query.filter_by(
-        username=session["user"]
-    ).all()
+    reports = (
+        Report.query
+        .filter_by(username=session["user"])
+        .order_by(Report.id.desc())
+        .all()
+    )
 
     return render_template(
         "history.html",
         reports=reports
     )
+
 
 # =========================
 # DELETE REPORT
@@ -444,33 +436,101 @@ def delete_report(id):
     if not is_logged_in():
         return redirect("/login")
 
-    report = Report.query.get(id)
+    report = Report.query.filter_by(
+        id=id,
+        username=session["user"]
+    ).first()
 
     if report:
-
         db.session.delete(report)
-
         db.session.commit()
 
     return redirect("/history")
 
+
 # =========================
-# DOWNLOAD REPORT
+# PDF GENERATOR
 # =========================
 
-@app.route("/download")
-def download():
+def generate_pdf_report(
+    name,
+    email,
+    phone,
+    experience,
+    score,
+    skills,
+    missing,
+    summary,
+    tips,
+):
 
-    pdf_path = "report.pdf"
+    pdf_path = f"report_{session['user']}.pdf"
 
-    if os.path.exists(pdf_path):
+    c = canvas.Canvas(pdf_path, pagesize=A4)
 
-        return send_file(
-            pdf_path,
-            as_attachment=True
-        )
+    width, height = A4
+    y = height - 50
 
-    return "PDF not found"
+    c.setFont("Helvetica-Bold", 18)
+    c.drawCentredString(width / 2, y, "ATS Analyzer AI Report")
+
+    y -= 40
+
+    c.setFont("Helvetica", 12)
+
+    data = [
+        f"Name : {name}",
+        f"Email : {email}",
+        f"Phone : {phone}",
+        f"Experience : {experience}",
+        f"ATS Score : {score}%",
+        "",
+        "Skills:",
+        skills,
+        "",
+        "Missing Skills:",
+        missing,
+        "",
+        "AI Summary:",
+    ]
+
+    for line in data:
+        c.drawString(50, y, line)
+        y -= 20
+
+    for line in summary.split("\n"):
+        if y < 60:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica", 12)
+
+        c.drawString(50, y, line)
+        y -= 18
+
+    y -= 15
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Resume Tips")
+    y -= 20
+
+    c.setFont("Helvetica", 12)
+
+    for tip in tips:
+
+        if y < 60:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica", 12)
+
+        c.drawString(60, y, "• " + tip)
+        y -= 18
+
+    c.save()
+
+    return pdf_path
+
+
+
 
 # =========================
 # RUN
@@ -479,5 +539,7 @@ def download():
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=True,
+        host="0.0.0.0",
+        port=5000,
     )

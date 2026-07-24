@@ -81,11 +81,23 @@ text-decoration:none;
 
 <form method="POST">
 
-<input type="text" name="username" placeholder="Enter Username" required>
+<input
+type="text"
+name="username"
+placeholder="Enter Username"
+autocomplete="username"
+required>
 
-<input type="password" name="password" placeholder="Enter Password" required>
+<input
+type="password"
+name="password"
+placeholder="Enter Password"
+autocomplete="current-password"
+required>
 
-<button type="submit">Login</button>
+<button type="submit" id="loginBtn">
+🔐 Login
+</button>
 
 </form>
 
@@ -93,6 +105,20 @@ text-decoration:none;
 <a href="/forgot_password">Forgot Password?</a>
 
 </div>
+
+<script>
+
+document.querySelector("form").addEventListener("submit", function () {
+
+    const btn = document.getElementById("loginBtn");
+
+    btn.innerHTML = "⏳ Logging in...";
+
+    btn.disabled = true;
+
+});
+
+</script>
 
 </body>
 </html>

@@ -4,135 +4,243 @@
 <title>History | ATS Analyzer AI</title>
 
 <style>
-body{
+
+*{
 margin:0;
 padding:0;
+box-sizing:border-box;
 font-family:Arial,sans-serif;
+}
+
+body{
 background:linear-gradient(135deg,#0f172a,#1e293b);
 color:white;
+padding:20px;
 }
 
 .container{
-max-width:680px;
-margin:18px auto;
-padding:18px;
+max-width:800px;
+margin:auto;
 background:#111827;
-border-radius:16px;
-box-shadow:0 0 18px rgba(0,0,0,.45);
+padding:30px;
+border-radius:18px;
+box-shadow:0 0 25px rgba(0,0,0,.45);
 }
 
 h1{
 text-align:center;
+font-size:36px;
 color:#38bdf8;
-margin-bottom:18px;
-font-size:26px;
+margin-bottom:30px;
 }
 
 .topbar{
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:16px;
 gap:10px;
+margin-bottom:25px;
+flex-wrap:wrap;
 }
 
 .btn{
-padding:7px 12px;
-border-radius:8px;
+display:inline-block;
+padding:12px 18px;
+border-radius:10px;
 text-decoration:none;
 font-weight:bold;
-font-size:14px;
+font-size:15px;
+transition:.3s;
 }
 
-.home{background:#38bdf8;color:#00111a;}
-.logout{background:#ef4444;color:white;}
+.home{
+background:#38bdf8;
+color:#00111a;
+}
+
+.home:hover{
+background:#0ea5e9;
+}
+
+.logout{
+background:#ef4444;
+color:white;
+}
+
+.logout:hover{
+background:#dc2626;
+}
 
 .report{
 background:#1f2937;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
-border-left:4px solid #22c55e;
+padding:20px;
+border-radius:15px;
+margin-bottom:18px;
+border-left:5px solid #22c55e;
+transition:.3s;
+}
+
+.report:hover{
+transform:translateY(-2px);
+box-shadow:0 6px 18px rgba(0,0,0,.3);
 }
 
 .label{
 color:#94a3b8;
-font-size:11px;
-margin-bottom:5px;
+font-size:13px;
+margin-bottom:10px;
 }
 
 .value{
-font-size:13px;
-line-height:1.3;
+font-size:16px;
+line-height:1.6;
+word-break:break-word;
 }
 
 .score{
-font-size:15px;
+margin-top:12px;
+font-size:20px;
 font-weight:bold;
 color:#22c55e;
-margin-top:6px;
+}
+
+.actions{
+margin-top:18px;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
 }
 
 .delete{
 display:inline-block;
-margin-top:8px;
-padding:6px 10px;
+padding:10px 16px;
 background:#ef4444;
 color:white;
 text-decoration:none;
-border-radius:8px;
-font-size:12px;
+border-radius:10px;
 font-weight:bold;
+transition:.3s;
+}
+
+.delete:hover{
+background:#dc2626;
 }
 
 .empty{
 text-align:center;
-padding:20px;
+padding:40px;
 background:#1f2937;
-border-radius:10px;
-color:#cbd5e1;
-font-size:14px;
+border-radius:15px;
 }
+
+.empty h2{
+margin-bottom:12px;
+color:#38bdf8;
+}
+
+.empty p{
+color:#cbd5e1;
+font-size:16px;
+}
+
+@media(max-width:600px){
+
+.container{
+padding:20px;
+}
+
+h1{
+font-size:28px;
+}
+
+.topbar{
+flex-direction:column;
+}
+
+.btn{
+width:100%;
+text-align:center;
+}
+
+.actions{
+flex-direction:column;
+}
+
+.delete{
+text-align:center;
+}
+
+}
+
 </style>
+
 </head>
 
 <body>
 
 <div class="container">
 
-<h1>Saved Reports 🔥</h1>
+<h1>📜 Saved Reports</h1>
 
 <div class="topbar">
+
 <a class="btn home" href="/">🏠 Home</a>
+
 <a class="btn logout" href="/logout">🚪 Logout</a>
+
 </div>
 
 {% if reports %}
 
 {% for report in reports %}
+
 <div class="report">
 
-<div class="label">Report #{{ loop.index }}</div>
+<div class="label">
+Report #{{ loop.index }}
+</div>
 
 <div class="value">
-<b>Skills:</b> {{ report.skills }}
+
+<b>Skills:</b><br>
+
+{{ report.skills }}
+
 </div>
 
 <div class="score">
-ATS Score: {{ report.score }}%
+
+ATS Score : {{ report.score }}%
+
 </div>
 
-<a class="delete" href="/delete_report/{{ report.id }}">
-🗑 Delete
+<div class="actions">
+
+<a
+class="delete"
+href="/delete_report/{{ report.id }}"
+onclick="return confirm('Are you sure you want to delete this report?')">
+
+🗑 Delete Report
+
 </a>
 
 </div>
+
+</div>
+
 {% endfor %}
 
 {% else %}
 
 <div class="empty">
-No Reports Yet
+
+<h2>📂 No Reports Found</h2>
+
+<p>
+Analyze your first resume to generate and save a report.
+</p>
+
 </div>
 
 {% endif %}

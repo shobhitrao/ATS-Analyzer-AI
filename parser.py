@@ -16,19 +16,27 @@ if os.name == "nt":
 # MAIN EXTRACT TEXT
 # ==========================
 def extract_text(file_path):
+
+    if not os.path.exists(file_path):
+        return ""
+
     ext = os.path.splitext(file_path)[1].lower()
 
-    if ext == ".pdf":
-        text = extract_pdf_text(file_path)
+    try:
+        if ext == ".pdf":
+            text = extract_pdf_text(file_path)
 
-    elif ext == ".docx":
-        text = extract_docx_text(file_path)
+        elif ext == ".docx":
+            text = extract_docx_text(file_path)
 
-    else:
-        text = ""
+        else:
+            return ""
 
-    return clean_text(text)
+        return clean_text(text)
 
+    except Exception as e:
+        print(f"Extract Error: {e}")
+        return ""
 
 # ==========================
 # PDF TEXT EXTRACTION
@@ -36,7 +44,7 @@ def extract_text(file_path):
 def extract_pdf_text(file_path):
     text = ""
 
-    # 1. pdfplumber (best layout)
+    # 1. pdfplumber (Best Quality)
     try:
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
@@ -51,11 +59,13 @@ def extract_pdf_text(file_path):
         if text.strip():
             return text
 
-    except:
-        pass
+    except Exception as e:
+        print(f"pdfplumber Error: {e}")
 
-    # 2. PyPDF2 fallback
+    # 2. PyPDF2 Fallback
     try:
+        text = ""
+
         with open(file_path, "rb") as file:
             reader = PyPDF2.PdfReader(file)
 
@@ -68,27 +78,40 @@ def extract_pdf_text(file_path):
         if text.strip():
             return text
 
-    except:
-        pass
+    except Exception as e:
+        print(f"PyPDF2 Error: {e}")
 
-    # 3. OCR fallback
+    # 3. OCR Fallback
     try:
-        images = convert_from_path(file_path)
+        text = ""
+
+        images = convert_from_path(
+            file_path,
+            dpi=300,
+            fmt="jpeg"
+        )
 
         for img in images:
-            text += pytesseract.image_to_string(img) + "\n"
+            page = pytesseract.image_to_string(
+                img,
+                lang="eng",
+                config="--oem 3 --psm 6"
+            )
+
+            if page.strip():
+                text += page + "\n"
 
         if text.strip():
             return text
 
-    except:
-        pass
+    except Exception as e:
+        print(f"OCR Error: {e}")
 
-    return "Unable to read PDF"
+    return ""
 
 
 # ==========================
-# DOCX TEXT
+# DOCX TEXT EXTRACTION
 # ==========================
 def extract_docx_text(file_path):
     text = ""
@@ -100,8 +123,8 @@ def extract_docx_text(file_path):
             if para.text.strip():
                 text += para.text + "\n"
 
-    except:
-        pass
+    except Exception as e:
+        print(f"DOCX Error: {e}")
 
     return text
 
@@ -110,13 +133,28 @@ def extract_docx_text(file_path):
 # CLEAN TEXT
 # ==========================
 def clean_text(text):
-    lines = text.split("\n")
-    cleaned = []
 
-    for line in lines:
+    if not text:
+        return ""
+
+    lines = []
+    seen = set()
+
+    for line in text.splitlines():
+
         line = line.strip()
 
-        if line:
-            cleaned.append(line)
+        if not line:
+            continue
 
-    return "\n".join(cleaned)
+        line = re.sub(r"[ \t]+", " ", line)
+
+        if line not in seen:
+            seen.add(line)
+            lines.append(line)
+
+    text = "\n".join(lines)
+
+    text = re.sub(r"\n{2,}", "\n", text)
+
+    return text.strip()

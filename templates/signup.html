@@ -9,7 +9,7 @@
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial;
+font-family:Arial,sans-serif;
 }
 
 body{
@@ -29,59 +29,94 @@ box-shadow:0 0 30px rgba(0,0,0,.45);
 }
 
 h1{
-font-size:64px;
+font-size:48px;
 color:#38bdf8;
-margin-bottom:40px;
+margin-bottom:30px;
+text-align:center;
 }
 
 input{
 width:100%;
-height:65px;
-margin:15px 0;
-padding:0 25px;
-font-size:20px;
+height:60px;
+margin:12px 0;
+padding:0 20px;
+font-size:18px;
 border:none;
-border-radius:18px;
+border-radius:15px;
 background:#1e293b;
 color:white;
+outline:none;
+}
+
+input:focus{
+border:2px solid #38bdf8;
 }
 
 button{
 width:100%;
-height:65px;
+height:60px;
 margin-top:20px;
 border:none;
-border-radius:18px;
+border-radius:15px;
 background:#38bdf8;
-font-size:22px;
+font-size:20px;
 font-weight:bold;
 cursor:pointer;
 color:white;
+transition:.3s;
+}
+
+button:hover{
+background:#0ea5e9;
+}
+
+button:disabled{
+opacity:.7;
+cursor:not-allowed;
 }
 
 a{
 display:block;
-margin-top:22px;
-font-size:18px;
+margin-top:20px;
+text-align:center;
+font-size:17px;
 color:#38bdf8;
 text-decoration:none;
 }
 
 .error{
-margin-top:15px;
-color:#f87171;
-font-size:16px;
+margin-bottom:15px;
+padding:12px;
+background:#7f1d1d;
+color:#fecaca;
+border-radius:10px;
 text-align:center;
 }
 
 .success{
-margin-top:15px;
-color:#4ade80;
-font-size:16px;
+margin-bottom:15px;
+padding:12px;
+background:#14532d;
+color:#bbf7d0;
+border-radius:10px;
 text-align:center;
 }
 
+@media(max-width:500px){
+
+.box{
+width:92%;
+padding:25px;
+}
+
+h1{
+font-size:38px;
+}
+
+}
+
 </style>
+
 </head>
 
 <body>
@@ -90,21 +125,69 @@ text-align:center;
 
 <h1>Signup 🔥</h1>
 
+{% if error %}
+<div class="error">
+{{ error }}
+</div>
+{% endif %}
+
+{% if success %}
+<div class="success">
+{{ success }}
+</div>
+{% endif %}
+
 <form method="POST" action="/signup">
 
-<input type="text" name="username" placeholder="Enter Username" required>
+<input
+type="text"
+name="username"
+placeholder="Enter Username"
+autocomplete="username"
+required>
 
-<input type="email" name="email" placeholder="Enter Email" required>
+<input
+type="email"
+name="email"
+placeholder="Enter Email"
+autocomplete="email"
+required>
 
-<input type="password" name="password" placeholder="Enter Password" required>
+<input
+type="password"
+name="password"
+placeholder="Enter Password (Min 8 Characters)"
+autocomplete="new-password"
+minlength="8"
+required>
 
-<button type="submit">Signup</button>
+<button
+type="submit"
+id="signupBtn">
+🔥 Create Account
+</button>
 
 </form>
 
-<a href="/login">Already have account? Login</a>
+<a href="/login">
+Already have an account? Login
+</a>
 
 </div>
+
+<script>
+
+document.querySelector("form").addEventListener("submit",function(){
+
+const btn=document.getElementById("signupBtn");
+
+btn.innerHTML="⏳ Creating Account...";
+
+btn.disabled=true;
+
+});
+
+</script>
 
 </body>
 </html>
