@@ -2,6 +2,9 @@ import os
 import time
 import google.generativeai as genai
 
+from flask import send_file
+import os
+
 from datetime import timedelta
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
@@ -239,6 +242,7 @@ def upload():
     if not text:
         os.remove(filepath)
         return "Could not extract resume text"
+    
 
     # Continue with:
     # name = extract_name(text)
@@ -528,6 +532,23 @@ def generate_pdf_report(
     c.save()
 
     return pdf_path
+
+@app.route("/download")
+def download():
+
+    if not is_logged_in():
+        return redirect("/login")
+
+    pdf_path = f"report_{session['user']}.pdf"
+
+    if os.path.exists(pdf_path):
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name="ATS_Analyzer_Report.pdf"
+        )
+
+    return "Report not found", 404
 
 
 
