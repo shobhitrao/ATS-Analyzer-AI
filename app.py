@@ -299,46 +299,86 @@ Team Work
     jd_match_score = match_score(text, jd_text)
 
     # =========================
-    # FINAL ATS SCORE
+    # PROFESSIONAL ATS SCORE
     # =========================
 
-    WEIGHTS = {
-        "skills": 0.40,
-        "experience": 0.20,
-        "projects": 0.15,
-        "education": 0.10,
-        "jd_match": 0.15,
-    }
+    skills_score = sections["Skills"]
+    experience_score = sections["Experience"]
+    project_score = sections["Projects"]
+    education_score = sections["Education"]
+
+    # Resume format score
+    format_score = 0
+
+    if name:
+        format_score += 20
+
+    if email:
+        format_score += 20
+
+    if phone:
+        format_score += 20
+
+    if len(text) > 500:
+        format_score += 20
+
+    if "education" in text.lower():
+        format_score += 20
+
+    # Contact score
+    contact_score = 0
+
+    if name:
+        contact_score += 20
+
+    if email:
+        contact_score += 40
+
+    if phone:
+        contact_score += 40
 
     final_score = round(
-        sections["Skills"] * WEIGHTS["skills"]
-        + sections["Experience"] * WEIGHTS["experience"]
-        + sections["Projects"] * WEIGHTS["projects"]
-        + sections["Education"] * WEIGHTS["education"]
-        + jd_match_score * WEIGHTS["jd_match"]
+        skills_score * 0.30 +
+        jd_match_score * 0.25 +
+        experience_score * 0.15 +
+        project_score * 0.10 +
+        education_score * 0.10 +
+        format_score * 0.05 +
+        contact_score * 0.05
     )
 
     final_score = max(0, min(100, final_score))
 
-    # =========================
-    # MISSING SKILLS
-    # =========================
+    if final_score >= 90:
+        grade = "Excellent"
+    elif final_score >= 80:
+        grade = "Very Good"
+    elif final_score >= 70:
+        grade = "Good"
+    elif final_score >= 60:
+        grade = "Average"
+    else:
+        grade = "Needs Improvement"
 
-    missing = missing_skills(skills, jd_skills)
+        # =========================
+        # MISSING SKILLS
+        # =========================
 
-    # =========================
-    # DISPLAY TEXT
-    # =========================
+        missing = missing_skills(skills, jd_skills)
 
-    skills_text = ", ".join(skills) if skills else "No Skills Found"
+        # =========================
+        # DISPLAY TEXT
+        # =========================
 
-    missing_text = (
-        ", ".join(missing)
-        if missing
-        else "No Missing Skills 🎉"
-    )
+        skills_text = ", ".join(skills) if skills else "No Skills Found"
 
-    jd_text_show = jd_text
+        missing_text = (
+            ", ".join(missing)
+            if missing
+            else "No Missing Skills 🎉"
+        )
+
+        jd_text_show = jd_text
 
     # =========================
     # TIPS & SUMMARY
@@ -532,6 +572,10 @@ def generate_pdf_report(
     c.save()
 
     return pdf_path
+
+# =========================
+# DOWNLOAD 
+# =========================
 
 @app.route("/download")
 def download():
