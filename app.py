@@ -360,25 +360,25 @@ Team Work
     else:
         grade = "Needs Improvement"
 
-        # =========================
-        # MISSING SKILLS
-        # =========================
+    # =========================
+    # MISSING SKILLS
+    # =========================
 
-        missing = missing_skills(skills, jd_skills)
+    missing = missing_skills(skills, jd_skills)
 
-        # =========================
-        # DISPLAY TEXT
-        # =========================
+    # =========================
+    # DISPLAY TEXT
+    # =========================
 
-        skills_text = ", ".join(skills) if skills else "No Skills Found"
+    skills_text = ", ".join(skills) if skills else "No Skills Found"
 
-        missing_text = (
-            ", ".join(missing)
-            if missing
-            else "No Missing Skills 🎉"
-        )
+    missing_text = (
+        ", ".join(missing)
+        if missing
+        else "No Missing Skills 🎉"
+    )
 
-        jd_text_show = jd_text
+    jd_text_show = jd_text
 
     # =========================
     # TIPS & SUMMARY
