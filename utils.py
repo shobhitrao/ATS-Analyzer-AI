@@ -54,9 +54,20 @@ def extract_email(text):
 
 def extract_phone(text):
 
-    match = re.search(r'(\+91[-\s]?\d{10}|\d{10})', text)
+    # Supports common Indian formats such as:
+    # +91 98765 43210, +91-9876543210, 98765 43210, 9876543210
+    phone_patterns = [
+        r'\+91[\s-]*\d{5}[\s-]*\d{5}',
+        r'\b[6-9]\d{4}[\s-]\d{5}\b',
+        r'\b[6-9]\d{9}\b',
+    ]
 
-    return match.group(0) if match else "Not Found"
+    for pattern in phone_patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0).strip()
+
+    return "Not Found"
 
 
 # ==========================
@@ -135,54 +146,46 @@ def extract_skills(text):
 # ==========================
 
 def match_score(resume_text, jd_text):
+    """
+    JD match score out of 100:
+    - 70 points: required technical skills matched
+    - 20 points: text similarity
+    - 10 points: resume quality signals
+    """
+    resume_skills = {s.lower() for s in advanced_skills(resume_text)}
+    jd_skills = {s.lower() for s in advanced_skills(jd_text)}
 
-    # Extract skills
-    resume_skills = [s.lower() for s in advanced_skills(resume_text)]
-    jd_skills = [s.lower() for s in advanced_skills(jd_text)]
-
-    # Resume & JD text
     resume = resume_text.lower()
     jd = jd_text.lower()
 
-    # ---------- Skill Matching (70 Marks) ----------
-    if len(jd_skills) > 0:
-        matched = len(set(resume_skills) & set(jd_skills))
+    if jd_skills:
+        matched = len(resume_skills & jd_skills)
         skill_score = (matched / len(jd_skills)) * 70
     else:
+        # If the JD has no recognizable technical skills, don't unfairly
+        # penalize the candidate.
         skill_score = 35
 
-    # ---------- Text Similarity (20 Marks) ----------
-    documents = [resume, jd]
-
     try:
-       cv = CountVectorizer(stop_words="english")
-       matrix = cv.fit_transform(documents)
-       similarity = cosine_similarity(matrix)[0][1]
-       similarity_score = similarity * 20
-    except ValueError:
-       similarity_score = 0
+        cv = CountVectorizer(stop_words="english")
+        matrix = cv.fit_transform([resume, jd])
+        similarity = float(cosine_similarity(matrix)[0][1])
+        similarity_score = similarity * 20
+    except (ValueError, IndexError):
+        similarity_score = 0
 
-    # ---------- Resume Quality (10 Marks) ----------
     quality = 0
-
-    if "project" in resume:
+    if re.search(r'\b(project|projects)\b', resume):
         quality += 3
-
-    if "experience" in resume or "intern" in resume:
+    if re.search(r'\b(experience|internship|intern)\b', resume):
         quality += 3
-
-    if "github" in resume:
+    if re.search(r'\blinkedin\b', resume):
+        quality += 2
+    if re.search(r'\bgithub\b', resume):
         quality += 2
 
-    if "linkedin" in resume:
-        quality += 2
+    return max(0, min(100, round(skill_score + similarity_score + quality)))
 
-    score = int(skill_score + similarity_score + quality)
-
-    if score > 100:
-        score = 100
-
-    return score
 
 # ==========================
 # EXPERIENCE
@@ -288,13 +291,11 @@ def ai_summary(name, skills, score, missing):
 # ==========================
 
 def section_scores(text):
-
+    """Return transparent, resume-only section scores out of 100."""
     t = text.lower()
 
     # ---------------- Skills ----------------
-    skills_found = advanced_skills(text)
-    skill_count = len(skills_found)
-
+    skill_count = len(advanced_skills(text))
     if skill_count >= 15:
         skills = 95
     elif skill_count >= 10:
@@ -303,12 +304,13 @@ def section_scores(text):
         skills = 75
     elif skill_count >= 4:
         skills = 65
+    elif skill_count >= 1:
+        skills = 55
     else:
-        skills = 50
+        skills = 30
 
     # ---------------- Experience ----------------
     exp = 50
-
     if re.search(r'8\s*\+?\s*(year|years|yr|yrs)', t):
         exp = 95
     elif re.search(r'5\s*\+?\s*(year|years|yr|yrs)', t):
@@ -317,22 +319,25 @@ def section_scores(text):
         exp = 80
     elif re.search(r'[12]\s*\+?\s*(year|years|yr|yrs)', t):
         exp = 70
-    elif "intern" in t:
+    elif re.search(r'\bintern(ship)?\b', t):
         exp = 60
-    elif "fresher" in t:
+    elif re.search(r'\bfresher\b', t):
         exp = 55
+    else:
+        # A resume can still be valid without explicitly stating years.
+        # Give a neutral score rather than assuming zero experience.
+        exp = 50
 
     # ---------------- Projects ----------------
-    project_keywords = [
-        "project",
-        "github",
-        "portfolio",
-        "api",
-        "machine learning",
-        "web application"
+    project_signals = [
+        r'\bprojects?\b',
+        r'\bgithub\b',
+        r'\bportfolio\b',
+        r'\bapi\b',
+        r'\bmachine learning\b',
+        r'\bweb application\b'
     ]
-
-    project_count = sum(1 for k in project_keywords if k in t)
+    project_count = sum(bool(re.search(pattern, t)) for pattern in project_signals)
 
     if project_count >= 5:
         proj = 95
@@ -343,30 +348,52 @@ def section_scores(text):
     elif project_count >= 1:
         proj = 65
     else:
-        proj = 50
+        proj = 40
 
     # ---------------- Education ----------------
-    if any(x in t for x in ["phd", "doctorate"]):
+    if re.search(r'\b(phd|doctorate)\b', t):
         edu = 95
-    elif any(x in t for x in ["m.tech", "mtech", "mba", "mca", "master"]):
+    elif re.search(r'\b(m\.tech|mtech|mba|mca|master(?:s)?|post\s*graduate)\b', t):
         edu = 90
-    elif any(x in t for x in [
-        "b.tech", "btech", "b.e", "be",
-        "bca", "b.sc", "bsc", "bcom", "b.com"
-    ]):
+    elif re.search(r'\b(b\.tech|btech|b\.e|b\.eng|be|bca|b\.sc|bsc|bcom|b\.com|bachelor)\b', t):
         edu = 80
-    elif "diploma" in t:
+    elif re.search(r'\bdiploma\b', t):
         edu = 70
-    elif "12th" in t or "intermediate" in t:
+    elif re.search(r'\b(12th|intermediate|higher secondary)\b', t):
         edu = 60
     else:
-        edu = 50
+        edu = 40
+
+    # ---------------- Format ----------------
+    # Check real extracted contact information rather than the strings
+    # "Not Found" / "Candidate", which are truthy in Python.
+    name_found = extract_name(text) != "Candidate"
+    email_found = extract_email(text) != "Not Found"
+    phone_found = extract_phone(text) != "Not Found"
+
+    format_score = 0
+    format_score += 20 if name_found else 0
+    format_score += 20 if email_found else 0
+    format_score += 20 if phone_found else 0
+    format_score += 20 if len(text.strip()) > 500 else 10 if len(text.strip()) > 250 else 0
+    format_score += 20 if re.search(
+        r'\b(education|skills|experience|projects?|certifications?|summary|objective)\b',
+        t
+    ) else 0
+
+    # ---------------- Contact ----------------
+    contact = 0
+    contact += 30 if name_found else 0
+    contact += 35 if email_found else 0
+    contact += 35 if phone_found else 0
 
     return {
         "Skills": skills,
         "Experience": exp,
         "Projects": proj,
-        "Education": edu
+        "Education": edu,
+        "Format": format_score,
+        "Contact": contact,
     }
 
 
